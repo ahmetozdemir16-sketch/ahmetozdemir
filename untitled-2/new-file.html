@@ -1,0 +1,1900 @@
+ <!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>GİB • Hibrit Otomasyon (V50.10 - Akıllı Durum)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    /* --- V50 ARAYÜZ STİLLERİ --- */
+    :root { --bg: #060912; --card: #121826; --mut: #9aa6bf; --ink: #eaf0ff; --acc: #6ea8fe; --ok: #3ccf91; --err: #ff6b6b; --bd: #232b3a; --warn: #ffb020; --info: #0dcaf0; --turbo: #d946ef; }
+    * { box-sizing: border-box }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: #0b1019; }
+    ::-webkit-scrollbar-thumb { background: #3b475e; border-radius: 5px; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font: 13px/1.5 'Segoe UI', monospace, sans-serif }
+    .wrap { max-width: 1300px; margin: 15px auto; padding: 0 15px 80px }
+    .card { background: var(--card); border: 1px solid var(--bd); border-radius: 10px; padding: 12px; margin-top: 10px }
+    .grid { display: grid; gap: 10px }
+    .g2 { grid-template-columns: 1fr 1fr } .g3 { grid-template-columns: 1fr 1fr 1fr } .g4 { grid-template-columns: 1fr 1fr 1fr 1fr } .g5 { grid-template-columns: 1fr 1fr 1fr 1fr 1fr }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center }
+    label { display: block; color: var(--mut); margin-bottom: 3px; font-size: 11px; font-weight: 700; text-transform: uppercase }
+    input, textarea, select { width: 100%; background: #050814; border-radius: 5px; border: 1px solid #273048; padding: 6px 8px; color: var(--ink); font: 12px/1.4 monospace; }
+    input:focus, textarea:focus { border-color: var(--acc); outline: none }
+    textarea { min-height: 80px; resize: vertical; white-space: pre; color: #a6e3a1; font-family: 'Consolas', monospace }
+    button { border: 0; border-radius: 5px; padding: 8px 15px; font-weight: 600; cursor: pointer; background: var(--acc); color: #02050b; font-size: 12px; transition: 0.2s }
+    button:hover { opacity: 0.9; transform: translateY(-1px) }
+    button.ok { background: var(--ok); color: #00170c } button.danger { background: #ff7676; color: #2a0000 }
+    button.secondary { background: #262f45; color: var(--ink) } button.info { background: var(--info); color: #000 }
+    button.turbo { background: var(--turbo); color: #fff; box-shadow: 0 0 10px rgba(217, 70, 239, 0.4); }
+    button:disabled { opacity: .5; cursor: not-allowed }
+    .mono { font-family: monospace }
+    fieldset { border: 1px solid #3b475e; border-radius: 6px; padding: 10px; margin: 0; background: #0b1019 }
+    legend { padding: 0 8px; color: #c7d7ff; font-weight: bold; background: var(--bg); border: 1px solid #3b475e; border-radius: 4px; font-size: 11px }
+    .table-container { max-height: 400px; overflow: auto; border: 1px solid #273048; border-radius: 6px; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px }
+    th, td { border: 1px solid #273048; padding: 6px 8px; text-align: left; vertical-align: top }
+    th { background: #191f30; position: sticky; top: 0; z-index: 5 }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer } .checkbox-row input { width: auto }
+    .field-info { font-size: 11px; color: #7a8ba3; margin-top: 4px; display: block; line-height: 1.3; }
+    .field-info i { font-style: normal; margin-right: 4px; opacity: 0.8; color: #d69e2e; }
+    .info-warn { color: #d69e2e; } .info-tech { color: #6ea8fe; }
+    #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .toast { background: #1f293a; color: #fff; padding: 12px 18px; border-radius: 6px; border-left: 4px solid var(--acc); opacity: 0; transform: translateY(20px); transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5) }
+    .toast.show { opacity: 1; transform: translateY(0); } .toast.err { border-left-color: var(--err); } .toast.ok { border-left-color: var(--ok); }
+    #progressOuter { margin-top: 8px; height: 10px; background: #0b1019; border: 1px solid #273048; border-radius: 99px; overflow: hidden }
+    #progressInner { height: 100%; width: 0; background: var(--acc); transition: width .2s ease }
+    #progressInfoRow { display:flex; justify-content:space-between; font-size:11px; color:var(--mut); margin-top:4px; }
+    #barText { font-weight:bold; color:#fff; }
+    .dash-box { background: #192130; border: 1px solid #273048; border-radius: 8px; padding: 10px; text-align: center; }
+    .dash-lbl { font-size: 10px; color: #9aa6bf; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .dash-val { font-size: 20px; font-weight: 700; color: #fff; }
+    #consoleLog, #consoleLogEt { background: #000; color: #0f0; font-family: 'Consolas', monospace; font-size: 11px; padding: 10px; border-radius: 6px; height: 200px; overflow-y: auto; margin-top: 10px; border: 1px solid #333; }
+    .log-line { margin: 3px 0; border-bottom: 1px solid #1a1a1a; padding-bottom: 2px; word-break: break-all; }
+    .log-time { color: #666; margin-right: 8px; } .log-lbl { color: var(--warn); font-weight: bold; margin-right: 5px; } .log-json { color: #a6e3a1; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="row" style="justify-content:space-between; margin-bottom:10px; align-items:center">
+      <h2 style="margin:0"><span style="color:var(--turbo)">⚡</span> GİB • Hibrit Otomasyon (V50.10)</h2>
+      <span id="stat" class="mono" style="color:var(--acc); font-weight:bold; background:#192130; padding:5px 10px; border-radius:5px; border:1px solid #273048">Bekleniyor...</span>
+    </div>
+
+    <div class="card" id="configCard">
+      <div class="row" style="gap:10px; align-items:center; flex-wrap:wrap; padding:10px 12px; border:1px solid var(--bd); border-radius:10px; background:#0b1019; margin-bottom:10px;">
+        <strong style="font-size:13px">Çalışma Modu:</strong>
+        <button type="button" id="btnModeNormal" class="secondary" style="padding: 8px 12px; background: var(--acc); color: rgb(0, 0, 0);">● Klasik Zincir Sorgu</button>
+        <button type="button" id="btnModeAuto" class="secondary" style="padding: 8px 12px; background: rgb(38, 47, 69); color: rgb(234, 240, 255);">🚀 e‑Tebligat Otomasyon</button>
+        <div class="row" style="margin-left:auto; gap:10px; align-items:center; background:#192130; padding:5px 10px; border-radius:6px; border:1px solid #232b3a;">
+          <label style="margin:0; color:var(--turbo)">⚡ Thread (Hız):</label>
+          <input id="threadCount" type="number" value="1" min="1" max="20" style="width:50px; text-align:center; color:var(--turbo); font-weight:bold" title="Aynı anda işlenecek sorgu sayısı">
+          <label style="margin:0; margin-left:10px; color:#acc">Bekleme (ms):</label>
+          <input id="waitMs" value="1500" style="width:60px; text-align:center">
+          <label class="checkbox-row" style="margin:0; font-size:11px; cursor:pointer; color:#fff" title="Rastgele gecikmeler ve molalar ekler">
+             <input type="checkbox" id="humanMode" checked=""> ☕ İnsan Modu
+          </label>
+          <label class="checkbox-row" style="margin:0; font-size:11px; cursor:pointer; color:#fff" title="İşlem bitince ses çalar">
+            <input type="checkbox" id="soundMode" checked=""> 🔔 Ses
+         </label>
+        </div>
+        <input type="radio" name="opMode" id="opModeNormal" value="normal" checked="" style="display:none">
+        <input type="radio" name="opMode" id="opModeAuto" value="autoSign" style="display:none">
+      </div>
+
+      <div id="classicInputs" style="display: block;">
+        <div class="grid g3">
+          <div><label>Token / URL (ZORUNLU)</label><input id="token" placeholder="...welcome.jsp?token=..."><span class="field-info">ℹ️ Sisteme giriş yapın. Adres çubuğundaki <b>token=...</b> değerini buraya yapıştırın.</span></div>
+          <div><label>JSESSIONID (Opsiyonel)</label><input id="cookie" placeholder="JSESSIONID=..."><span class="field-info">ℹ️ URL fallback olarak kullanılır.</span></div>
+          <div id="vknListContainer"><label>VKN Listesi (Klasik Mod)</label><textarea id="ids" placeholder="0070583778&#10;0010709079"></textarea><span class="field-info">📋 Her satıra bir adet Vergi No veya TC Kimlik No yapıştırın.</span></div>
+        </div>
+        <div class="grid g2" style="margin-top:10px">
+          <div><label>CallID Base</label><input id="callIdBase" placeholder="ağ trafiğinden al"><span class="field-info"><span class="info-warn">⚠️</span> GİB istek sayacı (Örn: 1729...)</span></div>
+          <div><label>CallID Sayaç</label><input id="callIdCounter" type="number" value="1"></div>
+        </div>
+        <div class="grid g4" style="margin-top:10px">
+          <div><label>Tür</label><select id="idType"><option value="vkn">VKN</option><option value="tckn">TCKN</option></select></div>
+          <div><label>Ön İzleme</label><input id="previewCount" value="5"></div>
+          <div><label>Başlangıç Sırası</label><input id="startIdx" type="number" placeholder="0"></div>
+          <div><label>Bitiş Sırası</label><input id="endIdx" type="number" placeholder="Hepsi"></div>
+        </div>
+        <div class="row" style="margin-top:12px" id="normalActionRow">
+          <button type="button" id="btnPreview">1) Ön İzleme</button>
+          <button type="button" id="btnRun" class="turbo">2) TURBO ZİNCİR SORGULA</button>
+          <button type="button" id="btnRetryList" class="secondary">Hatalıları Listele</button>
+          <button type="button" id="btnCSV" class="secondary" disabled="">CSV İndir</button>
+        </div>
+      </div>
+      
+      <div id="autoSignPanel" style="display:none; margin-top:15px; padding-top:15px; border-top:1px solid var(--bd);">
+        <div class="grid g4">
+          <div><label>E-İmza PIN Kodu</label><input type="password" id="pinKodu" placeholder="******" class="mono"></div>
+          <div><label>Başlangıç VKN</label><input id="vknStart" value="3000000000" class="mono"></div>
+          <div><label>Bitiş VKN</label><input id="vknEnd" value="6000000000" class="mono"></div>
+          <div style="padding-top:20px"><button type="button" id="btnAutoSign" class="ok" style="width:100%" onclick="baslatDongu()">BAŞLAT (OTOMATİK)</button></div>
+        </div>
+        <div class="grid g2" style="margin-top:10px">
+          <div><label>Token / URL (E-Tebligat)</label><input id="et_token" placeholder="...welcome.jsp?token=..."></div>
+          <div><label>JSESSIONID (E-Tebligat)</label><input id="et_cookie" placeholder="JSESSIONID=..."></div>
+        </div>
+        <div class="grid g2" style="margin-top:10px">
+          <div><label>CallID Base (E-Tebligat)</label><input id="et_callIdBase" placeholder="Boşsa klasik moddan alır"></div>
+          <div><label>CallID Sayaç (E-Tebligat)</label><input id="et_callIdCounter" type="number" value="1"></div>
+        </div>
+        <fieldset style="margin-top:10px">
+          <legend>1. Adım: Belge Listeleme (GİB)</legend>
+          <div class="grid g2">
+            <div><label>Dispatch</label><input id="et_dispatch" value="http://keys.ggm.bim/etebligat_server/dispatch"></div>
+            <div><label>CMD</label><input id="et_cmd1" value="etebligatService_etebligatBelgeSorgulaImzaIcin"></div>
+          </div>
+          <label>JSON Şablonu:</label>
+          <textarea id="tpl_list">{
+  "orgoid": "0000000000868",
+  "belgeDurumlari": ["250"],
+  "zarfDurumlari": ["210"],
+  "belgeTuru": "66",
+  "baslangic": "[VKN_START]",
+  "bitis": "[VKN_END]",
+  "pv": { "start": [START], "limit": [LIMIT], "sorters": [] }
+}</textarea>
+        </fieldset>
+        <fieldset>
+          <legend>2. Adım: İmza (Localhost)</legend>
+          <div class="grid g2">
+            <div><label>URL</label><input id="et_local" value="https://127.0.0.1:2023/"></div>
+            <div><label>CMD</label><input id="et_cmd2" value="signerService_imzala"></div>
+          </div>
+          <label>JSON Şablonu:</label>
+          <textarea id="tpl_sign">{
+  "dokumanOids": [OID_LIST],
+  "smartCardId": "[CARD_ID]",
+  "certificateId": "[CERT_ID]",
+  "moduleName": "sila",
+  "downloadUrl": "[DISPATCH]?cmd=etebligatImzaServis_imzalanacakVerileriIndir",
+  "uploadUrl": "[DISPATCH]?cmd=etebligatImzaServis_imzaliVerileriYukle",
+  "orgOid": "0000000000868",
+  "tokenParamName": "token",
+  "token": "[TOKEN]"
+}</textarea>
+        </fieldset>
+        <div class="grid g4" id="etDash" style="margin-top:15px; display:none;">
+          <div class="dash-box"><div class="dash-lbl">Toplam</div><div class="dash-val" id="dTotal">-</div></div>
+          <div class="dash-box" style="border-bottom: 3px solid var(--ok)"><div class="dash-lbl">Başarılı</div><div class="dash-val" id="dSuccess" style="color:var(--ok)">0</div></div>
+          <div class="dash-box" style="border-bottom: 3px solid var(--err)"><div class="dash-lbl">Hatalı</div><div class="dash-val" id="dError" style="color:var(--err)">0</div></div>
+          <div class="dash-box" style="border-bottom: 3px solid var(--acc)"><div class="dash-lbl">Sonraki</div><div class="dash-val" id="dRemain">-</div></div>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <div id="resumeInfo" style="font-size:12px; color:#ffd700; display:none; cursor:pointer;" onclick="sifirla()">⚠️ Kayıtlı işlem var (Sıfırla)</div>
+        </div>
+        <div id="etLogWrap" style="margin-top:12px">
+          <label style="margin-top:15px; color:#fff">📡 CANLI İŞLEM MONİTÖRÜ (e‑Tebligat)</label>
+          <div id="consoleLogEt"></div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:15px; display:block">
+        <div id="progressOuter"><div id="progressInner"></div></div>
+        <div id="progressInfoRow">
+             <span id="barText">0%</span>
+             <span id="etaText">Tahmini Bitiş: --:--</span>
+        </div>
+      </div>
+      <div id="consoleLogWrap" style="display: block;">
+        <label style="margin-top:15px; color:#fff">📡 CANLI İŞLEM MONİTÖRÜ</label>
+        <div id="consoleLog"></div>
+      </div>
+    </div>
+
+    <div id="originalTemplateAndServiceCards" style="display: block;">
+      <div class="card">
+        <div class="grid g3">
+          <div><label>Şablon Adı</label><input id="tplName" placeholder="Yeni kayıt için isim..."></div>
+          <div><label>Kayıtlılar</label><select id="tplSelect"><option value="">(şablon yok)</option></select></div>
+          <div class="row" style="margin-top:18px">
+            <button type="button" id="btnTplSave" class="secondary">Kaydet (Yeni)</button>
+            <button type="button" id="btnTplUpdate" class="secondary" style="background:#ffb020; color:#000">Güncelle</button>
+            <button type="button" id="btnTplLoad" class="secondary">Yükle</button>
+            <button type="button" id="btnTplDelete" class="danger">Sil</button>
+            <button type="button" id="btnTplExport" class="secondary">Dışa Aktar</button>
+            <button type="button" id="btnTplImport" class="secondary">İçe Aktar</button>
+            <input type="file" id="tplFile" style="display:none">
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+            <label class="checkbox-row" style="color:#d69e2e" title="Token ve Cookie bilgilerini şablona kaydeder.">
+                <input type="checkbox" id="saveSecrets" checked> 🔒 Gizli Verileri (Token/Cookie) Kaydet
+            </label>
+        </div>
+        <div class="grid g3" style="margin-top:10px">
+          <div><label>Excel Başlık</label><input id="idColName" value="Vergi No"></div>
+          <div><label>JSON Path</label><input id="idPath" placeholder="ör: S1.vergino"></div>
+        </div>
+        <div class="row" style="margin-top:10px"><button type="button" id="btnSessSave" class="secondary">Oturum Kaydet</button><button type="button" id="btnSessLoad" class="secondary">Oturum Yükle</button></div>
+      </div>
+
+      <div class="card">
+        <fieldset>
+          <legend>Servis 1 (Sicil / Kimlik)</legend>
+          <div class="grid g3">
+            <div><label>Dispatch URL</label><input id="dispatch1" value="http://keys.ggm.bim/gibintranet_server/dispatch">
+            <span class="field-info">ℹ️ Ana sunucu adresi (genelde sabit).</span></div>
+            <div><label>Komut (CMD)</label><input id="cmd1" value="sicilService_getSicilBilgileri">
+            <span class="field-info">ℹ️ Servis fonksiyon adı.</span></div>
+            <div><label>Kayıt Yolu</label><input id="arrayPath1" value="data">
+            <span class="field-info">ℹ️ Veri yolu (data veya data.list vb).</span></div>
+          </div>
+          <div class="grid g2" style="margin-top:8px">
+            <div><label>JP Şablonu (S1)</label><textarea id="tpl1">{"vkn":"[ID]"}</textarea></div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="card">
+        <fieldset>
+          <legend>Servis 2 (Malvarlığı / Araç)</legend>
+          <div class="checkbox-row"><input type="checkbox" id="useS2" checked=""><span>Bu Servisi Kullan</span></div>
+          <div class="grid g3">
+            <div><label>Dispatch</label><input id="dispatch2">
+            <span class="field-info">ℹ️ Boş bırakılırsa S1 adresi kullanılır.</span></div>
+            <div><label>CMD</label><input id="cmd2" value="malVarligiService_tumMalVarligiBilgileriSorgula">
+            <span class="field-info">ℹ️ Servis 2 komutu.</span></div>
+            <div><label>Kayıt Yolu</label><input id="arrayPath2">
+            <span class="field-info">ℹ️ Dönen veri dizisi yolu. Örn: <i>data.motorluTasit...</i></span></div>
+          </div>
+          <div class="grid g2" style="margin-top:8px">
+            <div>
+              <label>JP Şablonu (S2)</label>
+              <textarea id="tpl2">{"vkn":"[ID]"}</textarea>
+              <span class="field-info">Örn: <i>{"vkn":"[ID]", "unvan":"[S1:unvan]"}</i></span>
+            </div>
+            <div style="padding-top:20px">
+              <label class="checkbox-row"><input type="checkbox" id="expand2" checked="">Dizi gelirse satırlara çoğalt</label>
+              <label class="checkbox-row"><input type="checkbox" id="s2SingleRow">Malvarlığı özetini tek satırda (ID başına)</label>
+              <label class="checkbox-row"><input type="checkbox" id="s2AutoSave"><b>Otomatik PDF Kaydet</b></label>
+              <label class="checkbox-row" style="color:var(--ok); font-weight:bold"><input type="checkbox" id="smartStatus" checked> Akıllı Durum (Güncel/Arşiv/Var/Yok)</label>
+              
+              <div style="border:1px solid #3b475e; border-radius:6px; padding:6px; margin-top:8px; background:#161d2b">
+                <label class="checkbox-row" style="color:#ffd700"><input type="checkbox" id="s2OzelEsas"><b>Özel Esas (2050 + 60)</b></label>
+                <div class="row" style="margin-top:6px; gap:5px">
+                   <label style="width:auto">ÖE Filtre:</label>
+                   <input id="oeFilter" placeholder="Boş=Hepsi, örn: listBir,listSonuc" style="width:140px; border:1px solid #444; background:#000">
+                </div>
+                <label class="checkbox-row" style="margin-top:6px"><input type="checkbox" id="oeMergeCols"><b>ÖE Kolon Birleştirici</b></label>
+                <label style="margin-top:8px">ÖE Birleştirme Modu</label><select id="oeMergeMode"><option value="leaf">Hızlı (sadece alan adı)</option><option value="parentLeaf">Güvenli</option></select>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="card">
+        <fieldset>
+          <legend>Servis 3 (Detay / İade)</legend>
+          <div class="checkbox-row"><input type="checkbox" id="useS3" checked=""><span>Bu Servisi Kullan</span></div>
+          <div class="grid g3">
+            <div><label>Dispatch</label><input id="dispatch3">
+            <span class="field-info">ℹ️ Boşsa S1 kullanılır.</span></div>
+            <div><label>CMD</label><input id="cmd3">
+            <span class="field-info">ℹ️ Servis 3 komutu.</span></div>
+            <div><label>Kayıt Yolu</label><input id="arrayPath3">
+            <span class="field-info">ℹ️ Array yolu. Örn: <i>data.list</i></span></div>
+          </div>
+          <div class="grid g2" style="margin-top:8px">
+            <div>
+              <div class="grid g2">
+                <div><label>Filtre Path (S3)</label><input id="filterPath3" placeholder="örn: durum"></div>
+                <div><label>Filtre Değerleri</label><input id="filterValues3" placeholder="örn: 1-1,1-3"></div>
+              </div>
+              <label style="margin-top:10px">JP Şablonu (S3)</label>
+              <textarea id="tpl3"></textarea>
+              <span class="field-info">Örn: <i>{"plaka":"[S2:plaka]"}</i></span>
+            </div>
+            <div style="padding-top:20px"><label class="checkbox-row"><input type="checkbox" id="expand3" checked="">Dizi gelirse çoğalt</label></div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="card">
+        <fieldset>
+          <legend>Servis 4 (Detay 2 / Borç)</legend>
+          <div class="checkbox-row"><input type="checkbox" id="useS4" checked=""><span>Bu Servisi Kullan</span></div>
+          <div class="grid g3">
+            <div><label>Dispatch</label><input id="dispatch4">
+            <span class="field-info">ℹ️ Boşsa S1 kullanılır.</span></div>
+            <div><label>CMD</label><input id="cmd4">
+            <span class="field-info">ℹ️ Servis 4 komutu.</span></div>
+            <div><label>Kayıt Yolu</label><input id="arrayPath4">
+            <span class="field-info">ℹ️ Array yolu. Örn: <i>data</i></span></div>
+          </div>
+          <div class="grid g2" style="margin-top:8px">
+            <div>
+              <label>JP Şablonu (S4)</label>
+              <textarea id="tpl4"></textarea>
+              <span class="field-info">Örn: <i>{"id":"[S3:id]"}</i></span>
+            </div>
+            <div style="padding-top:20px"><label class="checkbox-row"><input type="checkbox" id="expand4" checked="">Dizi gelirse çoğalt</label></div>
+          </div>
+        </fieldset>
+      </div>
+
+<div class="card">
+  <fieldset style="border: 1px solid rgba(217, 70, 239, .6);">
+    <legend>Servis 5 (EVDB Çoklu Rapor / PDF)</legend>
+    <div class="checkbox-row"><input type="checkbox" id="useS5"><span>Bu Servisi Kullan (PDF indirir/açar)</span></div>
+    <div class="grid g2" style="margin-top:8px">
+      <div><label>PDF URL</label><input id="dispatch5" value="http://keys.ggm.bim/evdorapor_server/pdf">
+        <span class="field-info">ℹ️ EVDB PDF endpoint. (Dispatch değil, doğrudan /pdf)</span></div>
+      <div><label>CMD</label><input id="cmd5" value="evdorapor">
+        <span class="field-info">ℹ️ EVDB PDF çağrısı için sabit.</span></div>
+    </div>
+    <div style="margin-top:10px">
+      <label>Çoklu Rapor Listesi</label>
+      <textarea id="evdbMultiConfig" placeholder="serviceName|reportName|PREFIX|KLASOR\nservice2|report2|PREFIX2|Klasor2"></textarea>
+      <span class="field-info">ℹ️ Her satır: <b>serviceName|reportName|prefix</b>. 4. kolon opsiyonel: <b>klasör etiketi</b>. Prefix boş olabilir.</span>
+  <div class="row" style="align-items:flex-end; gap:10px; margin-top:10px; flex-wrap:wrap">
+    <button class="btn" type="button" id="s5PasteExamples" title="Gerçek örnek satırları otomatik yapıştır">📋 Hazır Örnekleri Yapıştır</button>
+    <button class="btn" type="button" id="s5ToggleBuilder" title="Menüden seçerek otomatik satır üret">☑ Menüden seç → otomatik S5 satırı üret</button>
+    <span class="muted" style="margin-left:auto">İpucu: Her raporu ayrı satır yaz. 4. kolon (klasör etiketi) opsiyonel.</span>
+  </div>
+
+  <div class="card" id="s5Builder" style="display:none; margin-top:10px">
+    <div class="row" style="gap:10px; flex-wrap:wrap">
+      <div style="min-width:260px; flex:1">
+        <label class="muted">serviceName (zorunlu)</label>
+        <input id="s5ServiceName" class="mono" placeholder="Örn: evdoLRHacizServices_vknTcknBazindaDetayListesi" />
+        <div class="muted" style="margin-top:6px">Not: “serviceName” raporun servis adıdır. Network’ten (pdf çağrısının params’ı) birebir alınır.</div>
+      </div>
+
+      <div style="min-width:260px; flex:1">
+        <label class="muted">Rapor seç (reportName otomatik)</label>
+        <select id="s5ReportPick">
+          <option value="">— Rapor seç —</option>
+          <option value="RP_EVDO_EHACIZ_BILDIRI_VKN_BAZINDA_DETAY">VKN/TCKN Bazında Detay Listesi (e‑Haciz Bildiri)</option>
+          <option value="RP_EVDO_YSICIL_MUK_ACIZ_HALINDE_OLAN_LISTESI">Aciz Halinde Olan Mükellefler Listesi</option>
+          <option value="RP_EVDO_YOKLAMA_MEMURU_FAALIYET_RAPORU">Yoklama Memuru Faaliyet Raporu</option>
+          <option value="RP_EVDO_YOKLAMA_BORDROSU">Servis Bazında Yoklama Bordrosu</option>
+        </select>
+      </div>
+
+      <div style="min-width:240px; flex:1">
+        <label class="muted">reportName (elle de yazılabilir)</label>
+        <input id="s5ReportName" class="mono" placeholder="Örn: RP_EVDO_EHACIZ_BILDIRI_VKN_BAZINDA_DETAY" />
+      </div>
+    </div>
+
+    <div class="row" style="gap:10px; margin-top:10px; flex-wrap:wrap">
+      <div style="min-width:240px; flex:1">
+        <label class="muted">prefix (opsiyonel)</label>
+        <input id="s5Prefix" class="mono" placeholder="Örn: EHACIZ_DETAY" />
+      </div>
+      <div style="min-width:240px; flex:1">
+        <label class="muted">klasör etiketi (opsiyonel, 4. kolon)</label>
+        <input id="s5FolderTag" class="mono" placeholder="Örn: EHACIZ / YOKLAMA / ACIZ" />
+      </div>
+      <div style="display:flex; gap:10px; align-items:flex-end">
+        <button class="btn ok" type="button" id="s5AddLine">➕ Satıra Ekle</button>
+        <button class="btn" type="button" id="s5ClearLine">Temizle</button>
+      </div>
+    </div>
+
+    <div class="muted" style="margin-top:10px">
+      <b>Örnek:</b> <span class="mono">evdoLRHacizServices_vknTcknBazindaDetayListesi|RP_EVDO_EHACIZ_BILDIRI_VKN_BAZINDA_DETAY|EHACIZ_DETAY|EHACIZ</span>
+    </div>
+  </div>
+
+            <div class="row" style="margin-top:10px; gap:10px; align-items:center; flex-wrap:wrap">
+              <button type="button" id="btnPickS5Folder" class="secondary">📁 Klasör Seç (S5)</button>
+              <span id="s5FolderLabel" class="mono" style="color:#9aa6bf">Klasör seçilmedi</span>
+              <label class="checkbox-row" style="margin:0"><input type="checkbox" id="s5FsSave"> Gerçek klasöre kaydet (Chrome/Edge)</label>
+            </div>
+            <span class="field-info">ℹ️ Klasöre kaydetme, tarayıcı izinleri ve sunucu CORS ayarlarına bağlıdır. Olmazsa otomatik olarak normal indirime düşer.</span>
+
+    </div>
+  </fieldset>
+</div>
+
+    </div>
+
+    <div class="card" id="fieldSelectionPanel" style="display: block;">
+      <fieldset>
+        <legend>Alan Seçimi</legend>
+        <div class="grid g5">
+          <div><b>S1 Alanları</b><div id="fields1"></div></div>
+          <div><b>S2 Alanları</b><div id="fields2"></div></div>
+          <div><b>S3 Alanları</b><div id="fields3"></div></div>
+          <div><b>S4 Alanları</b><div id="fields4"></div></div>
+          <div><b>S5 Alanları</b><div id="fields5"></div></div>
+        </div>
+        <div class="row" style="margin-top:12px"><button type="button" id="btnColsSync" class="secondary">Seçili Alanları Aktar</button></div>
+        <table style="margin-top:12px">
+          <thead id="colOrderHead"><tr><th>#</th><th>Svc</th><th>Path</th><th>Başlık</th><th>Tür</th><th>Detay Mod</th><th>Sıra</th></tr></thead>
+          <tbody id="colOrderBody"></tbody>
+        </table>
+      </fieldset>
+    </div>
+
+    <div class="card" id="resultCard" style="display: block;">
+      <div class="table-container">
+        <table>
+          <thead id="thead"><tr><th>Durum</th><th>Detay</th></tr></thead>
+          <tbody id="tbody"><tr><td colspan="2">Veri yok</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div id="toast-container"></div>
+
+  <script>
+    /* ==========================================================================
+       GİB HİBRİT MOTOR - V50.10 (AKILLI DURUM MODU)
+       Features:
+       - FIXED: Template loading error
+       - NEW: Smart Status Mode (Güncel/Arşiv/Mal Varlığı Var/Yok)
+       ========================================================================== */
+    const SERVICE_COUNT = 5;
+    const $ = s => document.querySelector(s);
+    let isRunning=false, stopRequested=false, lastIndex=0, ids=[], rowsOut=[];
+    let fieldLists = Array(SERVICE_COUNT+1).fill(null).map(()=>[]);
+    let selected   = Array(SERVICE_COUNT+1).fill(null).map(()=>[]);
+    let columnsConfig = [], waitMsGlobal = 1500;
+    let discoveriesBySvc = Array(SERVICE_COUNT+1).fill(null).map(()=>[]);
+    let chosenPathBySvc  = Array(SERVICE_COUNT+1).fill('');
+
+    const TPL_KEY = 'gib4sorgu_tpls_v49';
+    const SESS_KEY = 'gib4sorgu_session_v49';
+    
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // --- UTILITY FUNCTIONS ---
+    function parseToken(s){ 
+        if(!s)return''; 
+        const i=s.indexOf('token='); 
+        return i>=0?s.substring(i+6).split(/[&#\s]/)[0]:s.trim(); 
+    }
+    
+    function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+    function getHumanWaitTime(baseTime) {
+        const isHuman = $('#humanMode')?.checked;
+        if (!isHuman) return baseTime;
+        const variance = baseTime * 0.3;
+        let randomWait = baseTime + ((Math.random() * variance * 2) - variance);
+        if (Math.random() < 0.10) { randomWait += (500 + Math.random() * 1500); }
+        return Math.floor(randomWait);
+    }
+
+    function makeCallIdSafe() { return Date.now(); }
+    
+    function nextCallIdFromInputs(baseInput, counterInput){
+      const base = (baseInput?.value || '').trim(); const n = parseInt((counterInput?.value ?? '1'), 10);
+      const counter = (isNaN(n) || n < 0) ? 1 : n;
+      if(!base) return makeCallIdSafe();
+      const callid = String(base) + "_" + String(counter);
+      if(counterInput) counterInput.value = String(counter + 1); return callid;
+    }
+
+    function playTone(freq=600, dur=0.1, type='sine') {
+        if(!$('#soundMode').checked) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.value = freq;
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + dur);
+        osc.stop(audioCtx.currentTime + dur);
+    }
+    function playSuccess() { playTone(800, 0.1); setTimeout(()=>playTone(1200, 0.2), 100); }
+    function playError() { playTone(200, 0.3, 'sawtooth'); }
+    function playDone() { playTone(500,0.1); setTimeout(()=>playTone(500,0.1), 150); setTimeout(()=>playTone(800,0.4), 300); }
+
+    function migrateLegacySessionOnce(){
+      const FLAG = 'gib4sorgu_migrated_sess_v50';
+      if (localStorage.getItem(FLAG) === '1') return;
+      localStorage.setItem(FLAG, '1');
+    }
+    
+    function saveSession(showToastMsg=false){
+      try {
+        const cfg = collectConfigFromUI();
+        localStorage.setItem(SESS_KEY, JSON.stringify(cfg));
+        if (showToastMsg) showToast('Oturum kaydedildi.', 'success');
+        log('OTURUM', 'Kaydedildi');
+      } catch(e) {
+        showToast('Oturum kaydedilemedi: ' + e.message, 'error');
+      }
+    }
+
+    function loadSession(showToastMsg=false){
+      try {
+        const raw = localStorage.getItem(SESS_KEY);
+        if (!raw) { if (showToastMsg) showToast('Kayıtlı oturum yok.', 'error'); return; }
+        let cfg;
+        try { cfg = JSON.parse(raw); }
+        catch(e) { if (showToastMsg) showToast('Oturum bozuk (JSON).', 'error'); return; }
+        applyConfigToUI(cfg);
+        if (showToastMsg) showToast('Oturum yüklendi.', 'success');
+        log('OTURUM', 'Yüklendi');
+      } catch(e) {
+        showToast('Oturum yüklenemedi: ' + e.message, 'error');
+      }
+    }
+
+    window.addEventListener('error', (ev) => { try { log('JS-ERROR', (ev&&ev.message)?ev.message:'Hata'); } catch(_) {} });
+
+    /* --- GÜVENLİK --- */
+    function escapeHtml(text) {
+        if (text == null) return '';
+        return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    /* --- CONFIG --- */
+    function collectConfigFromUI() {
+        const mode = document.querySelector('input[name="opMode"]:checked')?.value || 'normal';
+        const cfg = {
+            version: 'v50.10',
+            mode,
+            classic: {},
+            et: {},
+            services: {},
+            columnsConfig: columnsConfig || [],
+            selected: selected || []
+        };
+
+        // --- Classic (Klasik Zincir) ---
+        cfg.classic.token = $('#token')?.value || '';
+        cfg.classic.cookie = $('#cookie')?.value || '';
+        cfg.classic.ids = $('#ids')?.value || '';
+        cfg.classic.callIdBase = $('#callIdBase')?.value || '';
+        cfg.classic.callIdCounter = $('#callIdCounter')?.value || '1';
+        cfg.classic.idType = $('#idType')?.value || 'vkn';
+        cfg.classic.waitMs = $('#waitMs')?.value || '1500';
+        cfg.classic.idColName = $('#idColName')?.value || '';
+        cfg.classic.idPath = $('#idPath')?.value || '';
+        cfg.classic.humanMode = $('#humanMode')?.checked || false;
+        cfg.classic.threadCount = $('#threadCount')?.value || '1';
+        cfg.classic.soundMode = $('#soundMode')?.checked || false;
+
+        // --- e-Tebligat (Otomasyon) ---
+        cfg.et.token = $('#et_token')?.value || '';
+        cfg.et.cookie = $('#et_cookie')?.value || '';
+        cfg.et.callIdBase = $('#et_callIdBase')?.value || '';
+        cfg.et.callIdCounter = $('#et_callIdCounter')?.value || '1';
+        cfg.et.vknStart = $('#vknStart')?.value || '';
+        cfg.et.vknEnd = $('#vknEnd')?.value || '';
+        cfg.et.dispatch = $('#et_dispatch')?.value || '';
+        cfg.et.cmd1 = $('#et_cmd1')?.value || '';
+        cfg.et.local = $('#et_local')?.value || '';
+        cfg.et.cmd2 = $('#et_cmd2')?.value || '';
+        cfg.et.tpl_list = $('#tpl_list')?.value || '';
+        cfg.et.tpl_sign = $('#tpl_sign')?.value || '';
+
+        for (let i = 1; i <= SERVICE_COUNT; i++) {
+            cfg.services[i] = {
+                dispatch: $('#dispatch' + i)?.value || '',
+                cmd: $('#cmd' + i)?.value || '',
+                arrayPath: $('#arrayPath' + i)?.value || '',
+                tpl: $('#tpl' + i)?.value || '',
+                use: $('#useS' + i)?.checked || false,
+                expand: $('#expand' + i)?.checked || false,
+                filterPath: (i === 3 ? $('#filterPath3')?.value : ''),
+                filterValues: (i === 3 ? $('#filterValues3')?.value : ''),
+                s2OzelEsas: (i === 2 ? $('#s2OzelEsas')?.checked : false),
+                s2SingleRow: (i === 2 ? $('#s2SingleRow')?.checked : false),
+                s2AutoSave: (i === 2 ? $('#s2AutoSave')?.checked : false),
+                oeMergeCols: (i === 2 ? $('#oeMergeCols')?.checked : false),
+                oeMergeMode: (i === 2 ? $('#oeMergeMode')?.value : 'leaf'),
+                oeFilter: (i === 2 ? $('#oeFilter')?.value : ''),
+                smartStatus: (i === 2 ? $('#smartStatus')?.checked : false),
+                evdbMultiConfig: (i === 5 ? ($('#evdbMultiConfig')?.value || '') : '')
+            };
+        }
+
+        if (!$('#saveSecrets')?.checked) {
+            cfg.classic.token = '';
+            cfg.classic.cookie = '';
+            cfg.et.token = '';
+            cfg.et.cookie = '';
+        }
+
+        return cfg;
+    }
+
+    function applyConfigToUI(cfg) {
+        if (!cfg) return;
+        const classic = cfg.classic || {};
+        const et = cfg.et || {};
+
+        const currentMode = document.querySelector('input[name="opMode"]:checked')?.value || 'normal';
+        const hasNewFormat = !!cfg.classic || !!cfg.et;
+
+        const applyClassic = hasNewFormat || currentMode === 'normal';
+        const applyEt = hasNewFormat || currentMode === 'autoSign';
+
+        if (applyClassic) {
+            $('#token').value = classic?.token || '';
+            $('#cookie').value = classic?.cookie || '';
+            if (classic?.ids !== undefined) $('#ids').value = classic.ids;
+            if (classic?.callIdBase !== undefined) $('#callIdBase').value = classic.callIdBase;
+            if (classic?.callIdCounter !== undefined && $('#callIdCounter')) $('#callIdCounter').value = classic.callIdCounter;
+            if (classic?.idType !== undefined) $('#idType').value = classic.idType;
+            if (classic?.waitMs !== undefined) $('#waitMs').value = classic.waitMs;
+            if (classic?.idColName !== undefined) $('#idColName').value = classic.idColName;
+            if (classic?.idPath !== undefined) $('#idPath').value = classic.idPath;
+            if (classic?.humanMode !== undefined) $('#humanMode').checked = !!classic.humanMode;
+            if (classic?.threadCount !== undefined) $('#threadCount').value = classic.threadCount;
+            if (classic?.soundMode !== undefined) $('#soundMode').checked = !!classic.soundMode;
+        }
+
+        if (applyEt) {
+            $('#et_token').value = et?.token || '';
+            $('#et_cookie').value = et?.cookie || '';
+            if (et?.callIdBase !== undefined) $('#et_callIdBase').value = et.callIdBase;
+            if (et?.callIdCounter !== undefined) $('#et_callIdCounter').value = et.callIdCounter;
+            if (et?.vknStart !== undefined) $('#vknStart').value = et.vknStart;
+            if (et?.vknEnd !== undefined) $('#vknEnd').value = et.vknEnd;
+            if (et?.dispatch !== undefined) $('#et_dispatch').value = et.dispatch;
+            if (et?.cmd1 !== undefined) $('#et_cmd1').value = et.cmd1;
+            if (et?.local !== undefined) $('#et_local').value = et.local;
+            if (et?.cmd2 !== undefined) $('#et_cmd2').value = et.cmd2;
+            if (et?.tpl_list !== undefined) $('#tpl_list').value = et.tpl_list;
+            if (et?.tpl_sign !== undefined) $('#tpl_sign').value = et.tpl_sign;
+        }
+
+        const services = cfg.services;
+        if (services) {
+            for (let i = 1; i <= SERVICE_COUNT; i++) {
+                const s = services[i];
+                if (!s) continue;
+                if ($('#dispatch' + i)) $('#dispatch' + i).value = s.dispatch;
+                if ($('#cmd' + i)) $('#cmd' + i).value = s.cmd;
+                if ($('#arrayPath' + i)) $('#arrayPath' + i).value = s.arrayPath;
+                if ($('#tpl' + i)) $('#tpl' + i).value = s.tpl;
+                if ($('#useS' + i)) $('#useS' + i).checked = s.use;
+                if ($('#expand' + i)) $('#expand' + i).checked = s.expand;
+
+                if (i === 3) {
+                    if ($('#filterPath3')) $('#filterPath3').value = s.filterPath || '';
+                    if ($('#filterValues3')) $('#filterValues3').value = s.filterValues || '';
+                }
+                if (i === 2) {
+                    if ($('#s2OzelEsas')) $('#s2OzelEsas').checked = !!s.s2OzelEsas;
+                    if ($('#s2SingleRow')) $('#s2SingleRow').checked = !!s.s2SingleRow;
+                    if ($('#s2AutoSave')) $('#s2AutoSave').checked = !!s.s2AutoSave;
+                    if ($('#oeMergeCols')) $('#oeMergeCols').checked = !!s.oeMergeCols;
+                    if ($('#oeMergeMode')) $('#oeMergeMode').value = s.oeMergeMode || 'leaf';
+                    if ($('#oeFilter')) $('#oeFilter').value = s.oeFilter || '';
+                    if ($('#smartStatus')) $('#smartStatus').checked = !!s.smartStatus;
+                }
+
+if (i === 5) {
+    if ($('#dispatch5')) $('#dispatch5').value = s.dispatch || ($('#dispatch5').value || '');
+    if ($('#cmd5')) $('#cmd5').value = s.cmd || ($('#cmd5').value || 'evdorapor');
+    if ($('#evdbMultiConfig')) $('#evdbMultiConfig').value = s.evdbMultiConfig || '';
+    if ($('#useS5')) $('#useS5').checked = !!s.use;
+}
+
+            }
+        }
+
+        if (cfg.columnsConfig) columnsConfig = cfg.columnsConfig;
+        if (cfg.selected) selected = cfg.selected;
+
+        renderColumnsTable();
+        for (let i = 1; i <= SERVICE_COUNT; i++) {
+            document.querySelectorAll(`.fld[data-svc="${i}"]`).forEach(el => el.checked = false);
+            if (selected[i] && selected[i].length) {
+                selected[i].forEach(val => {
+                    const el = document.querySelector(`.fld[data-svc="${i}"][value="${CSS.escape(val)}"]`);
+                    if (el) el.checked = true;
+                });
+            }
+        }
+    }
+
+    function toggleMode() {
+      const mode = document.querySelector('input[name="opMode"]:checked')?.value || 'normal';
+      const autoPanel = document.getElementById('autoSignPanel');
+      const classicInputs = document.getElementById('classicInputs');
+      const classicBlocks = [document.getElementById('originalTemplateAndServiceCards'), document.getElementById('fieldSelectionPanel'), document.getElementById('resultCard'), document.getElementById('consoleLogWrap')];
+      const btnN = document.getElementById('btnModeNormal');
+      const btnA = document.getElementById('btnModeAuto');
+      
+      const setStyle = (btn, active) => {
+        if(!btn) return;
+        btn.style.background = active ? (mode === 'autoSign' ? 'var(--ok)' : 'var(--acc)') : '#262f45';
+        btn.style.color = active ? '#000' : '#eaf0ff';
+      };
+      if (mode === 'autoSign') {
+        if (autoPanel) autoPanel.style.display = 'block';
+        if (classicInputs) classicInputs.style.display = 'none';
+        classicBlocks.forEach(el => { if(el) el.style.display = 'none'; });
+        setStyle(btnN, false); setStyle(btnA, true);
+        log("MOD", "🚀 e-Tebligat Otomasyon");
+      } else {
+        if (classicInputs) classicInputs.style.display = 'block';
+        classicBlocks.forEach(el => { if(el) el.style.display = 'block'; });
+        if (autoPanel) autoPanel.style.display = 'none';
+        setStyle(btnA, false); setStyle(btnN, true);
+        log("MOD", "● Klasik Zincir Sorgu");
+      }
+    }
+
+    function initUIOnce(){
+        log("SİSTEM", "V50.10 Turbo (Akıllı Durum) - Hazır.");
+        try {
+            const d1 = $('#dispatch1');
+            if (d1 && /etebligat_server\/dispatch/i.test(d1.value || '')) {
+                d1.value = 'http://keys.ggm.bim/gibintranet_server/dispatch';
+            }
+            const etD = $('#et_dispatch');
+            if (etD && !(etD.value || '').trim()) {
+                etD.value = 'http://keys.ggm.bim/etebligat_server/dispatch';
+            }
+        } catch(_) {}
+        const setMode = (mode) => {
+          const rNormal = document.getElementById('opModeNormal');
+          const rAuto   = document.getElementById('opModeAuto');
+          if (mode === 'autoSign') rAuto.checked = true; else rNormal.checked = true;
+          toggleMode();
+        };
+        const btnN = document.getElementById('btnModeNormal');
+        const btnA = document.getElementById('btnModeAuto');
+        if (btnN) btnN.addEventListener('click', () => setMode('normal'));
+        if (btnA) btnA.addEventListener('click', () => setMode('autoSign'));
+        document.querySelectorAll('input[name="opMode"]').forEach(r => {
+          r.addEventListener('change', toggleMode);
+        });
+        toggleMode();
+        
+        const savedState = localStorage.getItem('GIB_AUTO_STATE');
+        if (savedState) {
+            try {
+                const state = JSON.parse(savedState);
+                if (state.start > 0) {
+                    $('#resumeInfo').style.display = 'block';
+                    $('#resumeInfo').innerHTML = `⚠️ Kayıtlı işlem var (${state.start}. kayıt). Sıfırlamak için tıklayın.`;
+                }
+            } catch(e) {
+                localStorage.removeItem('GIB_AUTO_STATE');
+            }
+        }
+        migrateLegacySessionOnce();
+        loadSession(false);
+        refreshTplSel();
+
+        if ($('#btnSessSave')) $('#btnSessSave').onclick = () => saveSession(true);
+        if ($('#btnSessLoad')) $('#btnSessLoad').onclick = () => loadSession(true);
+            if ($('#btnPickS5Folder')) $('#btnPickS5Folder').onclick = () => pickS5Folder();
+}
+    document.addEventListener('DOMContentLoaded', initUIOnce);
+
+    /* --- REPLACED: ORİJİNAL DISCOVER (KAŞİF) --- */
+    function discoverDataStructure(data, opts = {}) {
+      const { path = "", maxDepth = 24, maxArrayScan = 12, minKeys = 2 } = opts;
+      const seen = new WeakSet(); const out = [];
+      const isObj = x => x && typeof x === 'object';
+      const isPlainObj = x => isObj(x) && !Array.isArray(x);
+
+      function score(arrLen, headers, p){
+        const h = headers.map(s=>String(s).toLowerCase());
+        let bonus = 0;
+        if (h.some(k=>k.includes('vkn')||k.includes('tckn'))) bonus += 20;
+        if (h.some(k=>k.includes('id')||k.includes('no'))) bonus += 10;
+        return Math.min(arrLen, 500) + headers.length*3 + bonus;
+      }
+      
+      function walk(node, p, depth){
+        if(!isObj(node) || depth>maxDepth) return;
+        if(seen.has(node)) return; seen.add(node);
+        if(Array.isArray(node)){
+          if(node.length>0 && isPlainObj(node[0])){
+            const union = new Set();
+            const scanN = Math.min(node.length, maxArrayScan);
+            for(let i=0;i<scanN;i++){ if(isPlainObj(node[i])) Object.keys(node[i]).forEach(k=>union.add(k)); }
+            const headers = [...union];
+            if(headers.length >= minKeys){
+              out.push({ yol: p, kayitSayisi: node.length, sutunlar: headers, ornekVeri: node[0], skor: score(node.length, headers, p) });
+            }
+            walk(node[0], p ? (p+'[0]') : '[0]', depth+1);
+          }
+          return;
+        }
+        for(const k of Object.keys(node)){ walk(node[k], p ? (p + '.' + k) : k, depth+1); }
+      }
+      walk(data, path, 0); out.sort((a,b)=>b.skor-a.skor); return out;
+    }
+
+    function log(label, msg, isJson=false) {
+        const time = new Date().toLocaleTimeString();
+        const mode = document.querySelector('input[name="opMode"]:checked')?.value || 'normal';
+        const box = (mode === 'autoSign') ? $('#consoleLogEt') : $('#consoleLog');
+        
+        if(!box) return;
+        const div = document.createElement('div'); div.className = 'log-line';
+        
+        const spanLabel = document.createElement('span');
+        spanLabel.className = 'log-lbl'; spanLabel.textContent = label + ': ';
+        
+        const spanTime = document.createElement('span');
+        spanTime.className = 'log-time'; spanTime.textContent = '['+time+'] ';
+
+        const spanMsg = document.createElement('span');
+        spanMsg.className = isJson ? 'log-json' : 'log-val';
+        spanMsg.textContent = msg; 
+
+        div.appendChild(spanTime); div.appendChild(spanLabel); div.appendChild(spanMsg);
+        box.appendChild(div); box.scrollTop = box.scrollHeight;
+    }
+    function showToast(msg, type='info') {
+        const container = $('#toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast' + (type === 'error' ? ' err' : type === 'success' ? ' ok' : '');
+        toast.textContent = msg; container.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+    function sifirla() {
+        if(confirm("İlerleme sıfırlansın mı?")) { localStorage.removeItem('GIB_AUTO_STATE'); $('#resumeInfo').style.display = 'none'; log("SİSTEM", "İlerleme sıfırlandı.");
+        }
+    }
+
+    function normalizeFieldPath(p){ return String(p || '').replaceAll('[*]','[0]').replaceAll('\\u200B','').trim(); }
+    function isFieldSelected(svc, field){
+      const list = selected[svc] || []; const f = normalizeFieldPath(field);
+      for(const raw of list){
+        const s = normalizeFieldPath(raw); if(!s) continue;
+        if(s === f) return true;
+        if(s.endsWith('.' + f) || s.endsWith('].' + f)) return true;
+      }
+      return false;
+    }
+    async function requestWithRetry(dispatch, tokenInput, cmd, jpObj, options = {}) {
+      const config = { retryCount: 3, method: 'POST', paramsLocation: 'body', extraParams: {}, cookieValue: null, callIdBaseEl: null, callIdCounterEl: null, ...options };
+      const token = parseToken(tokenInput);
+      let logPayload = (typeof jpObj === 'string') ? jpObj : JSON.stringify(jpObj);
+      if(logPayload.length > 150) logPayload = logPayload.substring(0, 150) + "...";
+      log("GİDEN", `CMD: ${cmd} | ${logPayload}`, true);
+      
+      for (let attempt = 1; attempt <= config.retryCount; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 SANIYE TIMEOUT
+
+        try {
+          const params = new URLSearchParams();
+          if (cmd) params.append('cmd', cmd);
+          let callid = nextCallIdFromInputs(config.callIdBaseEl || $('#callIdBase'), config.callIdCounterEl || $('#callIdCounter'));
+          params.append('callid', callid);
+          if (token) params.append('token', token);
+          if (jpObj) params.append('jp', (typeof jpObj === 'string') ? jpObj : JSON.stringify(jpObj));
+          for (const [k, v] of Object.entries(config.extraParams)) params.append(k, v);
+          
+          let fetchUrl = dispatch;
+          const cookieVal = (config.cookieValue != null ? String(config.cookieValue) : ($('#cookie')?.value?.trim() || '')).trim();
+          
+          if(cookieVal && !fetchUrl.includes(';jsessionid=')) {
+             let justId = cookieVal;
+             if(justId.toUpperCase().includes('JSESSIONID=')) {
+                 const part = justId.split(';').find(p => p.trim().toUpperCase().startsWith('JSESSIONID='));
+                 if(part) justId = part.split('=')[1];
+             }
+             if(justId && justId.length > 5) fetchUrl += ';jsessionid=' + justId;
+          }
+
+          let fetchOptions = { 
+              method: config.method, 
+              headers: { 'Accept': 'application/json' }, 
+              credentials: 'include',
+              signal: controller.signal
+          };
+          
+          if(cookieVal) { try { fetchOptions.headers['Cookie'] = cookieVal; } catch(e){} }
+
+          if (config.paramsLocation === 'url' || config.method === 'GET') {
+            fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + params.toString();
+            if(config.method==='POST') fetchOptions.headers['Content-Type']='application/x-www-form-urlencoded; charset=UTF-8';
+          } else {
+            fetchOptions.headers['Content-Type']='application/x-www-form-urlencoded; charset=UTF-8'; fetchOptions.body = params;
+          }
+          const res = await fetch(fetchUrl, fetchOptions);
+          clearTimeout(timeoutId);
+          
+          if(!res.ok) throw new Error(res.status + ' ' + res.statusText);
+
+          const txt = await res.text();
+          try {
+            const json = JSON.parse(txt);
+            if (json.error === "1" || (json.messages?.[0]?.type === "1")) {
+                log("HATA (GİB)", json.messages?.[0]?.text || "Bilinmeyen Hata");
+                return { ok: false, error: json.messages?.[0]?.text };
+            }
+            return { ok: true, json };
+          } catch (e) { 
+            log("HATA (PARSE)", "Yanıt JSON değil"); 
+            return { ok: false, error: 'JSON Parse Hatası', text: txt }; 
+          }
+        } catch (e) { 
+            clearTimeout(timeoutId);
+            if(e.name === 'AbortError') log("HATA", "Zaman aşımı (90sn)");
+            else log("HATA (AĞ)", e.message);
+        }
+        if (attempt < config.retryCount) await wait(1200);
+      }
+      return { ok: false, error: "İstek başarısız" };
+    }
+    function postWithRetry(dispatch, tokenInput, cmd, jpObj, retryCount=3, options={}) {
+        if (typeof retryCount === 'object' && retryCount !== null) { options = retryCount;
+        retryCount = options.retryCount || 3; }
+        return requestWithRetry(dispatch, tokenInput, cmd, jpObj, { retryCount, ...options });
+    }
+
+
+    // --- S5: File System Access (gerçek klasöre kaydetme) ---
+    let s5RootDirHandle = null;
+
+    async function pickS5Folder() {
+      if (!window.showDirectoryPicker) {
+        showToast('Klasör seçme desteklenmiyor. Chrome/Edge kullanın.', 'error');
+        return;
+      }
+      try {
+        s5RootDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        if ($('#s5FolderLabel')) $('#s5FolderLabel').textContent = 'Seçildi: ' + (s5RootDirHandle?.name || 'klasör');
+        showToast('S5 klasörü seçildi: ' + (s5RootDirHandle?.name || ''), 'success');
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;
+        showToast('Klasör seçilemedi: ' + (e?.message || e), 'error');
+      }
+    }
+
+    async function ensureSubDir(root, folderTag) {
+      if (!folderTag) return root;
+      const clean = String(folderTag).trim().replace(/[\\/:*?"<>|]+/g, '_') || 'S5';
+      return await root.getDirectoryHandle(clean, { create: true });
+    }
+
+    async function saveBlobToDir(blob, filename, folderTag) {
+      if (!s5RootDirHandle) throw new Error('S5 klasörü seçilmedi');
+      const dir = await ensureSubDir(s5RootDirHandle, folderTag);
+      const fh = await dir.getFileHandle(filename, { create: true });
+      const writable = await fh.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return (folderTag ? (String(folderTag).trim() + '/') : '') + filename;
+    }
+
+    
+    /* --- REPLACED: ORİJİNAL COLLECTOR (ALAN TOPLAYICI) --- */
+    function collectKeysDeep(node, prefix = '', out = new Set(), opts = {}){
+      const { maxDepth = 12, maxArrayDepth = 4, includeLeafOnly = true } = opts;
+      function walk(x, p, depth, arrDepth){
+        if (x === null || x === undefined) { if (!includeLeafOnly && p) out.add(p); return; }
+        if (typeof x !== 'object') { if (p) out.add(p); return; }
+        if (Array.isArray(x)) {
+          if (!x.length) { if (!includeLeafOnly && p) out.add(p); return; }
+          const sample = x.find(v => v && typeof v === 'object') ?? x[0];
+          if (arrDepth < maxArrayDepth) walk(sample, p + '[0]', depth + 1, arrDepth + 1); 
+          else if (!includeLeafOnly && p) out.add(p);
+          return;
+        }
+        if (depth >= maxDepth) { if (!includeLeafOnly && p) out.add(p); return; }
+        const keys = Object.keys(x);
+        if (!keys.length) { if (!includeLeafOnly && p) out.add(p); return; }
+        for (const k of keys) walk(x[k], p ? (p + '.' + k) : k, depth + 1, arrDepth);
+      }
+      walk(node, prefix, 0, 0); return [...out];
+    }
+
+// --- S5 (EVDB) helpers ---
+async function getEvdbToken(mainToken) {
+  const loginUrl = 'http://keys.ggm.bim/evdorapor_server/assos-login';
+  const params = new URLSearchParams();
+  params.append('assoscmd', 'shlogin');
+  params.append('rtype', 'json');
+  params.append('token', parseToken(mainToken));
+  const res = await fetch(loginUrl, { method: 'POST', body: params, credentials: 'include' });
+  if (!res.ok) throw new Error('EVDB login hata: ' + res.status);
+  const json = await res.json();
+  if (!json || !json.token) throw new Error('EVDB token alınamadı');
+  return json.token;
+}
+
+async function downloadEvdbPdf(vkn, mainToken, pdfBase, serviceName, reportName, filePrefix, folderLabel) {
+  const newToken = await getEvdbToken(mainToken);
+
+  let base = String(pdfBase || '').trim();
+  if (!base) throw new Error('S5 PDF URL boş');
+  base = base.replace(/\s+/g, '');
+  if (/\/dispatch(\b|\?|$)/i.test(base)) base = base.replace(/\/dispatch(\b|\?|$)/i, '/pdf');
+
+  const paramsObj = {
+    serviceName: String(serviceName || '').trim(),
+    reportName: String(reportName || '').trim(),
+    VERGINO: String(vkn),
+    VKN: String(vkn),
+    TCKIMLIKNO: '',
+    HACIZBILDIRINO: '',
+    IPTAL: false
+  };
+  if (!paramsObj.serviceName || !paramsObj.reportName) throw new Error('S5 satırında serviceName/reportName eksik');
+
+  const targetUrl = `${base}?params=${encodeURIComponent(JSON.stringify(paramsObj))}&cmd=evdorapor&token=${encodeURIComponent(newToken)}`;
+  
+  const safe = (s)=>String(s||'').trim().replace(/[\\/:*?"<>|]+/g,'_').replace(/[^a-zA-Z0-9_\-ığüşöçİĞÜŞÖÇ]/g,'_');
+  const folder = safe(folderLabel);
+  const prefix = safe(filePrefix || 'EVDB');
+  const fileName = `${prefix}_${vkn}.pdf`;
+
+  // 1) File System Access ile gerçek klasöre kaydetmeyi dene
+  const wantFs = !!($('#s5FsSave')?.checked);
+  if (wantFs && s5RootDirHandle && window.showDirectoryPicker) {
+    try {
+      const res = await fetch(targetUrl, { method: 'GET', credentials: 'include' });
+      if (!res.ok) throw new Error('PDF fetch hata: ' + res.status);
+      const blob = await res.blob();
+      const savedPath = await saveBlobToDir(blob, fileName, folder);
+      return savedPath;
+    } catch (e) {
+      // CORS / fetch engeli vs. olursa fallback: normal indirme
+      try { log('S5', 'FS kaydetme başarısız, normal indirime düşüldü: ' + (e.message || e)); } catch(_) {}
+    }
+  }
+
+  // 2) Fallback: tarayıcı indirimi / yeni sekme
+  const fileHint = `${folder ? folder + '__' : ''}${fileName}`;
+  const a = document.createElement('a');
+  a.href = targetUrl;
+  a.target = '_blank';
+  a.download = fileHint;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => a.remove(), 100);
+
+  return fileHint;
+
+}
+
+    
+    function ensureArray(x){ return Array.isArray(x) ? x : (x==null ? [] : [x]); }
+    function findS4ArrayBase() {
+      const paths = [];
+      if (columnsConfig && columnsConfig.length) { columnsConfig.filter(c => c.svc === 4).forEach(c => paths.push(c.field)); } 
+      else { (selected[4] || []).forEach(f => paths.push(f)); }
+      for (const p of paths) { const m = /^(.*)\[(\d+)\]\.[^.]+$/.exec(p); if (m) return m[1]; } return null;
+    }
+    function get(obj, path){
+      if(!path) return obj; const re=/(\w+)|\[(\d+)\]/g; let cur=obj,m;
+      while((m=re.exec(path))){ const k = (m[1]!==undefined)?m[1]:Number(m[2]); if(cur==null) return undefined;
+      cur = cur[k]; }
+      return cur;
+    }
+    function parseMultiField(field){ if(field == null) return []; return String(field).split('||').map(x=>x.trim()).filter(Boolean); }
+    function getFromRecs(recs, svc, field, detailIndex) {
+      const fields = parseMultiField(field);
+      if (svc === 4 && detailIndex != null) {
+        for(const f of fields){
+          const m = /^(.*)\[(\d+)\]\.(.+)$/.exec(String(f||''));
+          if (m) { const arr = get(recs[4] || {}, m[1]); if (Array.isArray(arr) && arr[detailIndex]) { const v = get(arr[detailIndex], m[3]);
+          if(v != null && v !== '') return v; } }
+        }
+      }
+      for(const f of fields){ const v = get(recs[svc] || {}, f);
+      if(v != null && v !== '') return v; } return get(recs[svc] || {}, fields[0]);
+    }
+
+    /* --- REPLACED: ORİJİNAL MALVARLIĞI ANALİZİ --- */
+    function malvarlikAyrintiliAnaliz(fullJson) {
+      if (!fullJson) return null;
+      const d = fullJson.data || fullJson;
+      let counts = [];
+      let res = { ozet: 'YOK', arac: '', tapu: '', ismak: '', deniz: '', hava: '' };
+      
+      try {
+        // 1. ARAÇ (Motorlu Taşıt)
+        const aracList = d.motorluTasit?.tumMotorluTasitBilgileri?.veriler || [];
+        if (aracList.length) {
+            counts.push(`${aracList.length} Araç`);
+            res.arac = aracList.map(a => {
+                const marka = a.marka || '';
+                const model = a.tipi || a.model || '';
+                const yil = a.modelYili || '';
+                let detay = marka;
+                if(model) detay += ` ${model}`;
+                if(yil) detay += ` - ${yil}`;
+                return `${a.plaka} (${detay})`;
+            }).join(' | ');
+        }
+
+        // 2. TAPU (Resimdeki Mantık: summary)
+        const tapuList = d.tapu?.takbisBilgileri?.summary || [];
+        if (tapuList.length) {
+            counts.push(`${tapuList.length} Tapu`);
+            res.tapu = tapuList.map(t => `${t.il}/${t.ilce} (${t.nitelik})`).join(' | ');
+        }
+
+        // 3. UÇAK (Resim 15'e göre düzeltildi)
+        const hvRoot = d.sivilHavacilik;
+        let havaList = hvRoot?.sivilHavacilikBilgileri || [];
+        if(!Array.isArray(havaList) && havaList?.data) havaList = havaList.data; // Wrapper kontrolü
+
+        if (Array.isArray(havaList) && havaList.length) {
+            counts.push(`${havaList.length} Uçak`);
+            res.hava = havaList.map(h => `${h.tescilisareti} (${h.model})`).join(' | ');
+        }
+
+        // 4. GEMİ (Resim 14'e göre - Double Nesting)
+        const denizRoot = d.denizTasit;
+        let denizList = [];
+        if(denizRoot?.gemiBilgileri?.data) denizList = denizRoot.gemiBilgileri.data; // Direkt path
+        else if(denizRoot?.denizTasit?.gemiBilgileri?.data) denizList = denizRoot.denizTasit.gemiBilgileri.data; // Nested path
+
+        if (denizList.length) {
+            counts.push(`${denizList.length} Gemi`);
+            res.deniz = denizList.map(g => `${g.gemiadi} (${g.gemicins})`).join(' | ');
+        }
+
+        // 5. İŞ MAKİNESİ (GERÇEK YAPIYA UYUMLU)
+        let ismakList = [];
+
+       // 1️⃣ ŞU ANDA GELEN GERÇEK FORMAT
+        if (Array.isArray(d.vehicledetail)) {
+         ismakList = d.vehicledetail;
+        }
+
+       // 2️⃣ Eski / alternatif formatlar (fallback)
+       else if (Array.isArray(d.vehicleDetail)) {
+      ismakList = d.vehicleDetail;
+      }
+      else if (Array.isArray(d.ISMAKINALARI?.ISMAKINALARIBILGILERI?.VEHICLEDETAIL)) {
+     ismakList = d.ISMAKINALARI.ISMAKINALARIBILGILERI.VEHICLEDETAIL;
+     }
+
+      if (ismakList.length) {
+      counts.push(`${ismakList.length} İş Mak.`);
+      res.ismak = ismakList.map(i => {
+        const plaka = i.platenumber ? i.platenumber + ' ' : '';
+        const marka = i.vehiclebrand || 'BELİRSİZ';
+        const tip   = i.vehicletype || i.type || '';
+        return `${plaka}${marka}${tip ? ' (' + tip + ')' : ''}`;
+    }).join(' | ');
+}
+
+        if (counts.length > 0) res.ozet = counts.join(' + ');
+      } catch (e) { 
+          console.error("Analiz Hatası:", e); 
+          return { ozet: "HATA" }; 
+      }
+      return res;
+    }
+
+    async function kaydetMalvarligi(token, dispatch, fullJson, id, rec1){
+      const d = fullJson.data || fullJson; const pdf = get(d, 'jasperObjPdf') || get(d, 'tumMalvarPdfByteArray');
+      if(!pdf) return { durum:'PDF YOK' };
+      const r = await postWithRetry(dispatch, token, 'malVarligiService_tumMalVarligiKaydet', { tumMalVarPdfByteArray: pdf, vkn: rec1.vkn || id, unvan: rec1.unvan || '', optTime: get(fullJson, 'metadata.optime') || '' }, { retryCount: 1 });
+      return { durum: r.ok ? 'BAŞARILI' : 'HATA' };
+    }
+    async function fetchService(id, token, sidx, recs){
+      let dispatch = $('#dispatch'+sidx).value.trim() || $('#dispatch1').value.trim();
+      const cmd = $('#cmd'+sidx).value.trim(), tpl = $('#tpl'+sidx).value;
+      let arrPath = $('#arrayPath'+sidx).value.trim();
+      if(!dispatch || !cmd) return {error:true, msg:'Eksik', rec:{}, arr:[], full:null};
+      
+      const r = await postWithRetry(dispatch, token, cmd, buildJp(tpl, id, recs));
+      if(!r.ok) return {error:true, msg:r.error, rec:{}, arr:[], full:null};
+      
+      const json = r.json, root = (json && json.data!==undefined) ? json.data : json;
+      let arr = [];
+      if(arrPath) arr = ensureArray(get(json, arrPath)); 
+      else {
+        if(root && (root.motorluTasit || root.tapu || root.isMakinalari || root.sivilHavacilik || root.denizTasit)) arr = [root];
+        else if(Array.isArray(root)) arr = root; else if(root && Array.isArray(root.data)) arr = root.data; else arr = [root || {}];
+      }
+      return {error:false, msg:'', rec: arr.length ? arr[0] : (root || {}), arr, full:json};
+    }
+    function buildJp(tplRaw, id, recs){
+      let s = (tplRaw||'').replace(/\[ID]/g,id).replace(/\[S(\d+):([^\]]+)]/g,(m,svc,path)=> { const v = get(recs[svc], path); return v==null?'':v; });
+      try { return JSON.parse(s); } catch(e) { return {vkn:id}; }
+    }
+    function paintRows(){
+      const tb = $('#tbody');
+      if(!rowsOut.length){ tb.innerHTML='<tr><td colspan="2">Henüz veri yok</td></tr>'; return; }
+      const frag = document.createDocumentFragment();
+      rowsOut.forEach(r => {
+          const tr = document.createElement('tr'); 
+          if(r[0]) tr.setAttribute('data-id', r[0]);
+          tr.innerHTML = r.map(v => '<td>'+escapeHtml(v)+'</td>').join('');
+          frag.appendChild(tr);
+      });
+      tb.innerHTML = ''; tb.appendChild(frag);
+    }
+    function appendRow(rowArray) {
+        const tb = $('#tbody');
+        if (tb.rows.length === 1 && tb.rows[0].innerText.includes('Henüz veri yok')) tb.innerHTML = '';
+        const tr = document.createElement('tr'); 
+        if(rowArray[0]) tr.setAttribute('data-id', rowArray[0]);
+        tr.innerHTML = rowArray.map(v => '<td>'+escapeHtml(v)+'</td>').join('');
+        tb.appendChild(tr);
+    }
+    function applyDetailModes(blockRows){
+      if(!columnsConfig.length || blockRows.length <= 1) return;
+      for(let colIdx=0; colIdx<columnsConfig.length; colIdx++){
+        const cfg = columnsConfig[colIdx], mode = cfg.detailMode || 'auto', ci = 2 + colIdx;
+        if(mode === 'first'){ for(let r=1; r<blockRows.length; r++) blockRows[r][ci] = ''; }
+        else if(mode === 'join'){
+          const vals = blockRows.map(r => r[ci]).filter(v => v!=null && v!=='');
+          blockRows[0][ci] = vals.join(' | '); for(let r=1; r<blockRows.length; r++) blockRows[r][ci] = '';
+        }
+      }
+    }
+
+    // --- DÜZELTME 2: TÜRKÇE SAYI FORMATI ---
+    function formatTrNumber(val) {
+        if (val == null || val === '') return '';
+        let num = parseFloat(String(val));
+        if (isNaN(num)) return val;
+        return num.toLocaleString('tr-TR', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+        });
+    }
+
+    function extractRow(id, recs, detailIndex=null){
+      let keyVal=id; const idPath = $('#idPath').value.trim();
+      if(idPath){
+        const m = /^S(\d+)\.(.+)$/.exec(idPath);
+        if(m) keyVal = get(recs[Number(m[1])]||{}, m[2]) || keyVal;
+        else { for(let s=1;s<=SERVICE_COUNT;s++){ const v=get(recs[s]||{}, idPath); if(v){ keyVal=v; break; } } }
+      }
+      const row=[keyVal, '']; // Status placeholder at index 1 is now handled before calling this, or overwritten
+      if(columnsConfig.length) {
+          columnsConfig.forEach(c => {
+             let rawVal = getFromRecs(recs, c.svc, c.field, detailIndex);
+             if (c.type === 'number') rawVal = formatTrNumber(rawVal);
+             row.push(rawVal);
+          });
+      }
+      else for(let s=1;s<=SERVICE_COUNT;s++) (selected[s]||[]).forEach(f=>row.push(getFromRecs(recs, s, f, detailIndex)));
+      return row;
+    }
+
+    function rebuildColumnsFromDOM(){
+      const body = $('#colOrderBody'); const rows = Array.from(body.querySelectorAll('tr[data-svc]'));
+      columnsConfig = rows.map(tr=>{
+        return {svc: Number(tr.getAttribute('data-svc')), field: tr.getAttribute('data-field'), alias: tr.querySelector('.col-alias')?.value.trim(), type: tr.querySelector('.col-type')?.value, detailMode: tr.querySelector('.col-detail')?.value};
+      });
+    }
+
+    function renderColumnsTable(){
+      const body = $('#colOrderBody');
+      if(!columnsConfig.length){ body.innerHTML='<tr><td colspan="7" style="color:#9aa6bf">Henüz kolon seçilmedi.</td></tr>'; }
+      else{
+        body.innerHTML = columnsConfig.map((c,idx)=>`
+          <tr data-svc="${c.svc}" data-field="${escapeHtml(c.field)}">
+            <td>${idx+1}</td><td>S${c.svc}</td><td>${escapeHtml(String(c.field||'').split('||')[0])}</td>
+            <td><input class="col-alias" value="${escapeHtml(c.alias || ('S'+c.svc+':'+c.field))}"></td>
+            <td><select class="col-type"><option value="text" ${!c.type||c.type==='text'?'selected':''}>Metin</option><option value="number" ${c.type==='number'?'selected':''}>Sayı</option></select></td>
+            <td><select class="col-detail"><option value="auto" ${(c.detailMode||'auto')==='auto'?'selected':''}>Oto</option><option value="first" ${c.detailMode==='first'?'selected':''}>İlk</option><option value="join" ${c.detailMode==='join'?'selected':''}>Birleştir</option></select></td>
+            <td><button type="button" class="secondary btnUp">▲</button><button type="button" class="secondary btnDown">▼</button></td>
+          </tr>`).join('');
+      }
+    }
+
+    function writeHeader(){
+      const thead = $('#thead'), idName = $('#idColName').value.trim() || 'Kimlik';
+      if(columnsConfig.length) thead.innerHTML = '<tr>'+[idName, 'Durum'].concat(columnsConfig.map(c=>c.alias)).map(h=>'<th>'+escapeHtml(h)+'</th>').join('')+'</tr>';
+      else thead.innerHTML = '<tr><th>'+escapeHtml(idName)+'</th><th>Durum</th></tr>';
+    }
+    
+    let startTime = 0;
+    function updateBar(cur, total){
+      const el = $('#progressInner'), txt = $('#barText');
+      if(!total || total<=0){ el.style.width='0%'; txt.textContent='0%'; return; }
+      const pct = Math.round((cur)*100/total); 
+      el.style.width = pct+'%'; txt.textContent = pct+'%';
+      
+      if(startTime && cur > 0) {
+          const elapsed = (Date.now() - startTime);
+          const perItem = elapsed / cur;
+          const remain = (total - cur) * perItem;
+          const etaDate = new Date(Date.now() + remain);
+          const h = String(etaDate.getHours()).padStart(2,'0');
+          const m = String(etaDate.getMinutes()).padStart(2,'0');
+          const s = String(etaDate.getSeconds()).padStart(2,'0');
+          $('#etaText').innerText = `Bitiş: ${h}:${m}:${s} (Kalan: ${Math.round(remain/1000/60)} dk)`;
+      }
+    }
+
+    function renderFields(idx){
+
+if (idx === 5) {
+  const box5 = $('#fields5');
+  if (box5) box5.innerHTML = '<span style="color:#9aa6bf">S5 (EVDB) alan seçimi yok. Multi config ile PDF rapor alınır.</span>';
+  return;
+}
+      const box = $('#fields'+idx), list = fieldLists[idx] || [];
+      const findings = discoveriesBySvc[idx] || [];
+      let discHtml = '';
+      if(findings.length){
+        const top = findings.slice(0, 6); const current = ($('#arrayPath'+idx)?.value?.trim()) || chosenPathBySvc[idx] || '';
+        discHtml = `<div style="border:1px solid #2a3750; padding:8px; border-radius:8px; background:#0b1019; margin-bottom:8px">
+            <div style="font-weight:700; color:#cfe0ff; margin-bottom:6px">🔎 Kâşif Adayları</div>
+            ${top.map((f)=>`<label class="checkbox-row" style="align-items:flex-start"><input type="radio" name="disc_s${idx}" class="discPick" data-svc="${idx}" value="${escapeHtml(f.yol)}" ${f.yol===current?'checked':''}><span><b style="color:#6ea8fe">${escapeHtml(f.yol)}</b><br><span style="color:#9aa6bf; font-size:11px">Kayıt: ${f.kayitSayisi} • Kolon: ${f.sutunlar.length}</span></span></label>`).join('')}
+            <div class="row" style="margin-top:8px; gap:8px"><button type="button" class="secondary btnApplyDiscovery" data-svc="${idx}">Uygula</button></div></div>`;
+      }
+      if(!list.length){ box.innerHTML = discHtml + '<span class="err">Veri yok</span>'; return; }
+      box.innerHTML = discHtml + list.map(f=>{
+        const checked = isFieldSelected(idx, f);
+        return `<label class="checkbox-row"><input type="checkbox" class="fld" data-svc="${idx}" value="${escapeHtml(f)}" ${checked?'checked':''}><span>${escapeHtml(f)}</span></label>`;
+      }).join('');
+    }
+    
+    // --- V50 PROCESSOR (ASYNC) ---
+    async function processSingleId(id, token) {
+        try {
+            const r1 = await fetchService(id, token, 1, {});
+            if (r1.error) { return { row: [id, '❌ S1: ' + r1.msg] }; }
+            const rec1 = r1.rec || {};
+
+
+// --- S5 (EVDB Çoklu Rapor / PDF) ---
+if ($('#useS5')?.checked) {
+    try {
+        const pdfBase = ($('#dispatch5')?.value || '').trim();
+        const cfgText = ($('#evdbMultiConfig')?.value || '').trim();
+        if (cfgText) {
+            const lines = cfgText.split('\n');
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+                const parts = line.split('|').map(s => s.trim());
+                if (parts.length < 2) continue;
+                const svc = parts[0];
+                const rpt = parts[1];
+                const pfx = parts[2] || 'EVDB';
+                const folder = parts[3] || '';
+                const fileHint = await downloadEvdbPdf(String(id), token, pdfBase, svc, rpt, pfx, folder);
+                try { log('S5', 'PDF açıldı/indirildi: ' + fileHint); } catch(_) {}
+                await wait(500);
+            }
+        }
+    } catch (e) {
+        try { log('HATA S5', e.message || String(e)); } catch(_) {}
+    }
+}
+            
+            let arr2 = [{}], rec2 = {};
+            const useS2 = $('#useS2').checked, useOe = useS2 && ($('#s2OzelEsas')?.checked);
+            let analiz = null;
+
+            if (useOe) {
+                const [m2050, m60] = await Promise.all([
+                    fetchOzelEsasMain(id, token, 2050),
+                    fetchOzelEsasMain(id, token, 60)
+                ]);
+                if (!m2050.ok && !m60.ok) { return { row: [id, '❌ ÖE Hata'] }; }
+                arr2 = [];
+                // ÖE Sonuçlarını analiz için sakla
+                rec2.__oe_m2050 = m2050; 
+                rec2.__oe_m60 = m60;
+
+                if (m2050.ok) arr2.push(buildOeS2Row(2050, m2050));
+                if (m60.ok) arr2.push(buildOeS2Row(60, m60));
+                if (arr2.length === 0) arr2.push({}); // Boşsa bile gir
+                rec2 = arr2[0] || {};
+            } else if (useS2) {
+                const r2 = await fetchService(id, token, 2, { 1: rec1 });
+                if (r2.error) { return { row: [id, '❌ S2: ' + r2.msg] }; }
+                rec2 = r2.rec || {};
+                arr2 = ($('#expand2').checked && r2.arr.length) ? r2.arr : [rec2];
+                if ($('#cmd2').value.includes('malVarligiService')) {
+                    analiz = malvarlikAyrintiliAnaliz(r2.full);
+                    if (analiz) Object.assign(rec2, { __mv_Ozet: analiz.ozet, __mv_Detay_Arac: analiz.arac, __mv_Detay_Tapu: analiz.tapu, __mv_Detay_IsMak: analiz.ismak, __mv_Detay_Deniz: analiz.deniz, __mv_Detay_Hava: analiz.hava });
+                    if ($('#s2SingleRow')?.checked) arr2 = [rec2];
+                    if ($('#s2AutoSave').checked) rec2.__malvarlikKayitDurumu = (await kaydetMalvarligi(token, $('#dispatch2').value, r2.full, id, rec1)).durum;
+                }
+            }
+
+            // AKILLI DURUM HESAPLAMA
+            let smartStatus = "";
+            if($('#smartStatus').checked) {
+                if(useOe) {
+                    // m2050 ve m60 verilerine bak
+                    const m2050 = rec2.__oe_m2050 || {}; // Yukarıda saklamamız lazım veya yeniden kontrol
+                    // Aslında arr2 döngüsü içinde daha sağlıklı ama burada genel durum belirliyoruz.
+                    // Basit mantık: Eğer arr2 içinde 2050 varsa GÜNCEL, yoksa ARŞİV
+                    const has2050 = arr2.some(r => r.__oe_durum === '2050' && r.__oe_visibleCount > 0);
+                    const has60 = arr2.some(r => r.__oe_durum === '60' && r.__oe_visibleCount > 0);
+                    
+                    if(has2050) smartStatus = "GÜNCEL";
+                    else if(has60) smartStatus = "ARŞİV";
+                    else smartStatus = "TEMİZ";
+                } 
+                else if(useS2) {
+                    if(analiz && analiz.ozet !== 'YOK') smartStatus = "Mal Varlığı Var";
+                    else smartStatus = "YOK";
+                }
+            }
+
+            const rowsBuffer = [];
+            for (const rec2Item of arr2) {
+                const rec2Use = $('#useS2').checked ? (Object.keys(rec2Item).length ? rec2Item : rec2) : {};
+                if (rec2.__mv_Ozet && !rec2Use.__mv_Ozet) {
+                    Object.assign(rec2Use, {
+                        __mv_Ozet: rec2.__mv_Ozet,
+                        __mv_Detay_Arac: rec2.__mv_Detay_Arac,
+                        __mv_Detay_Tapu: rec2.__mv_Detay_Tapu,
+                        __mv_Detay_IsMak: rec2.__mv_Detay_IsMak,
+                        __mv_Detay_Deniz: rec2.__mv_Detay_Deniz,
+                        __mv_Detay_Hava: rec2.__mv_Detay_Hava
+                    });
+                }
+
+                const baseS2 = { 1: rec1, 2: rec2Use };
+                let arr3 = [{}];
+                const useS3 = $('#useS3').checked;
+
+                if (useOe) {
+                    const d = String(rec2Use.__oe_durum || ''), visibleLists = String(rec2Use.__oe_visibleLists || '').split(',').filter(Boolean);
+                    if (visibleLists.length) {
+                         const tmp = [];
+                         for (const ln of visibleLists) {
+                             const det = await fetchOzelEsasDetay(id, token, d, ln);
+                             (det.arr || [{}]).forEach(it => tmp.push({ __oe_listName: ln, __oe_durum: d, __oe_tespitAciklama: oeTespitAciklama(it?.tespitTuru), ...it }));
+                         }
+                         arr3 = tmp.length ? tmp : [{ __oe_listName: '', __oe_durum: d }];
+                    } else { arr3 = [{ __oe_listName: '', __oe_durum: d }]; }
+                } else if (useS3) {
+                    const r3 = await fetchService(id, token, 3, baseS2);
+                    if (!r3.error) {
+                        let baseArr = (r3.arr && r3.arr.length) ? r3.arr : [r3.rec];
+                        const fp = $('#filterPath3')?.value, fv = $('#filterValues3')?.value;
+                        if (fp && fv) baseArr = baseArr.filter(it => fv.split(',').includes(String(get(it, fp))));
+                        arr3 = ($('#expand3').checked && baseArr.length) ? baseArr : [baseArr[0] || {}];
+                    }
+                }
+
+                for (const rec3Item of arr3) {
+                    const rec3Use = $('#useS3').checked ? rec3Item : {};
+                    const baseS3 = { 1: rec1, 2: rec2Use, 3: rec3Use };
+                    let arr4 = [{}];
+                    if ($('#useS4').checked) {
+                        const r4 = await fetchService(id, token, 4, baseS3);
+                        if (!r4.error) arr4 = ($('#expand4').checked && r4.arr.length) ? r4.arr : [r4.rec];
+                    }
+                    
+                    const s4ArrayBase = findS4ArrayBase();
+                    for (const rec4Item of arr4) {
+                        const rec4Use = $('#useS4').checked ? rec4Item : {}, recs = { 1: rec1, 2: rec2Use, 3: rec3Use, 4: rec4Use };
+                        let detailArray = null;
+                        if ($('#useS4').checked && s4ArrayBase) {
+                            const arr = get(rec4Use, s4ArrayBase);
+                            if (Array.isArray(arr) && arr.length > 0) detailArray = arr;
+                        }
+                        if (!detailArray) {
+                            let row = extractRow(id, recs);
+                            if(smartStatus) row[1] = smartStatus; // Akıllı Durumu uygula
+                            rowsBuffer.push(row);
+                        } else {
+                            const blockRows = detailArray.map((_, di) => extractRow(id, recs, di));
+                            applyDetailModes(blockRows);
+                            if(smartStatus) blockRows.forEach(br => br[1] = smartStatus); // Akıllı Durumu uygula
+                            blockRows.forEach(r => rowsBuffer.push(r));
+                        }
+                    }
+                }
+            }
+            return { success: true, rows: rowsBuffer };
+        } catch (e) {
+            return { row: [id, '❌ Hata: ' + e.message] };
+        }
+    }
+
+    $('#btnRun').onclick = async () => {
+      const token=$('#token').value.trim(); if(!token){showToast('Token yok','error');return;}
+      ids = $('#ids').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean); if(!ids.length){showToast('Liste boş','error');return;}
+      if(isRunning){ 
+          $('#startIdx').value = lastIndex || 0;
+          stopRequested=true; isRunning=false; return; 
+      }
+      for(let s=1;s<=SERVICE_COUNT;s++) selected[s] = [...document.querySelectorAll('.fld[data-svc="'+s+'"]:checked')].map(c=>c.value);
+      if(!selected.some((a,i)=>i>0&&a.length)){ showToast('Alan seç','error'); return; }
+      rebuildColumnsFromDOM();
+      waitMsGlobal = parseInt($('#waitMs').value.trim(),10) || 1500;
+      
+      let sIdx = parseInt($('#startIdx').value) || 0;
+      let eIdx = parseInt($('#endIdx').value);
+      if(isNaN(eIdx) || eIdx < sIdx) eIdx = ids.length;
+      eIdx = Math.min(eIdx, ids.length);
+      
+      const threadCount = parseInt($('#threadCount').value) || 1;
+
+      if(lastIndex===0){ rowsOut=[]; paintRows(); }
+      writeHeader();
+      isRunning=true; stopRequested=false; 
+      $('#btnRun').textContent='DURDUR'; 
+      $('#btnRun').className='danger';
+      log("SİSTEM", `🚀 V50.10 Turbo Başlatıldı. (Threads: ${threadCount})`);
+      startTime = Date.now();
+      
+      let processed = 0;
+      
+      for(let i=sIdx; i<eIdx; i += threadCount) {
+          if(stopRequested) { lastIndex=i; saveSession(true); break; }
+          
+          const batchIds = [];
+          for(let k=0; k<threadCount && (i+k) < eIdx; k++) batchIds.push({ idx: i+k, id: ids[i+k] });
+          
+          $('#stat').textContent = `⚡ İşleniyor: ${batchIds[0].idx+1}-${Math.min(i+threadCount, eIdx)}/${eIdx}`;
+          
+          const results = await Promise.all(batchIds.map(item => processSingleId(item.id, token)));
+          
+          for(const res of results) {
+              if(res.row) { rowsOut.push(res.row); appendRow(res.row); }
+              else if(res.success && res.rows) {
+                  res.rows.forEach(r => { rowsOut.push(r); appendRow(r); });
+              }
+          }
+          
+          processed += batchIds.length;
+          updateBar(i + batchIds.length, ids.length);
+          
+          const calcWait = getHumanWaitTime(waitMsGlobal);
+          await wait(calcWait);
+      }
+      
+      isRunning=false; 
+      $('#btnRun').className='turbo';
+      if(!stopRequested){ 
+          lastIndex=0; updateBar(eIdx,eIdx); $('#stat').textContent='Bitti'; $('#btnCSV').disabled=false;
+          $('#btnRun').textContent='2) TURBO ZİNCİR SORGULA'; showToast('Bitti','success'); 
+          playDone();
+      }
+      else $('#btnRun').textContent='Kaldığı yerden devam';
+    };
+
+    /* --- DÜZELTME: KÜMÜLATİF ÖN İZLEME BUTONU --- */
+    $('#btnPreview').onclick=async ()=>{
+      rowsOut=[]; paintRows(); $('#btnCSV').disabled=true; columnsConfig = [];
+      renderColumnsTable(); writeHeader();
+      
+      const token=$('#token').value.trim(); 
+      if(!token){showToast('Token yok','error');return;}
+      
+      ids = $('#ids').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean); 
+      if(!ids.length){showToast('Liste boş','error');return;}
+      
+      waitMsGlobal = parseInt($('#waitMs').value.trim(),10) || 1200;
+      const maxPreview = Math.min(parseInt($('#previewCount').value)||5, ids.length);
+      
+      const accumulatedFields = { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set(), 5: new Set() };
+      
+      fieldLists = [[],[],[],[],[],[]]; discoveriesBySvc = [[],[],[],[],[],[]]; selected = [[],[],[],[],[],[]];
+      for(let s=1;s<=SERVICE_COUNT;s++) $('#fields'+s).innerHTML='— Ön izleme bekleniyor —';
+      
+      updateBar(0,maxPreview); 
+      log("SİSTEM", "Kümülatif Ön izleme başlatıldı... (Toplam: " + maxPreview + ")");
+      
+      for(let i=0;i<maxPreview;i++){
+        const id = ids[i]; 
+        $('#stat').textContent = `Ön izleme ${i+1}/${maxPreview} - ID: ${id}`; 
+        const recs={};
+        
+        try{
+          log("ÖN İZLEME", `Sorgu atılıyor (S1) -> ${id}`);
+          const r1 = await fetchService(id,token,1,recs); 
+          
+          if(r1.error) {
+              log("HATA (S1)", r1.msg);
+              showToast(`ID ${id} için S1 Hatası: ${r1.msg}`, 'error');
+          } else {
+              log("BAŞARILI (S1)", "Veri alındı.");
+              recs[1]=r1.rec;
+              const keys = collectKeysDeep(r1.arr.length?r1.arr[0]:r1.rec);
+              keys.forEach(k => accumulatedFields[1].add(k));
+              fieldLists[1] = Array.from(accumulatedFields[1]).sort();
+              renderFields(1);
+          }
+        }catch(e){
+            log("KRİTİK HATA (S1)", e.message);
+            console.error(e);
+        }
+        
+        if($('#useS2').checked){
+          try{
+             const useOe = $('#s2OzelEsas')?.checked;
+             if(useOe){
+               log("ÖN İZLEME", "Özel Esas (ÖE) Sorgulanıyor...");
+               const m2050 = await fetchOzelEsasMain(id, token, 2050);
+               const sample = buildOeS2Row(2050, m2050.ok?m2050:{visible:[],raw:{}});
+               Object.keys(sample).forEach(k => accumulatedFields[2].add(k));
+               if(m2050.visible?.length) {
+                   const det = await fetchOzelEsasDetay(id, token, 2050, m2050.visible[0]);
+                   const detKeys = collectKeysDeep(det.arr[0]||{});
+                   detKeys.forEach(k => accumulatedFields[3].add(k));
+               }
+             } else {
+               log("ÖN İZLEME", `Sorgu atılıyor (S2) -> Malvarlığı`);
+               const r2 = await fetchService(id,token,2,recs);
+               recs[2]=r2.rec;
+               if(r2.error) log("HATA (S2)", r2.msg);
+               if(!r2.error){ 
+                   const keys = collectKeysDeep(r2.arr[0]||r2.rec);
+                   const ekAlanlar = ['__mv_Ozet', '__mv_Detay_Arac', '__mv_Detay_Tapu', '__mv_Detay_IsMak', '__mv_Detay_Deniz', '__mv_Detay_Hava'];
+                   ekAlanlar.forEach(k => keys.push(k)); 
+                   keys.forEach(k => accumulatedFields[2].add(k));
+                   fieldLists[2] = Array.from(accumulatedFields[2]).sort();
+                   renderFields(2);
+               }
+             }
+          }catch(e){ log("KRİTİK HATA (S2)", e.message); }
+        }
+
+        if($('#useS3').checked){ 
+            try{ 
+                log("ÖN İZLEME", `Sorgu atılıyor (S3)`);
+                const r3=await fetchService(id,token,3,recs);
+                recs[3]=r3.rec; 
+                if(!r3.error) { 
+                    const keys = collectKeysDeep(r3.arr[0]||r3.rec);
+                    keys.forEach(k => accumulatedFields[3].add(k));
+                    fieldLists[3] = Array.from(accumulatedFields[3]).sort();
+                    renderFields(3);
+                } 
+            }catch(e){ log("HATA (S3)", e.message); } 
+        }
+
+        if($('#useS4').checked){ 
+            try{ 
+                log("ÖN İZLEME", `Sorgu atılıyor (S4)`);
+                const r4=await fetchService(id,token,4,recs);
+                if(!r4.error) { 
+                    const keys = collectKeysDeep(r4.arr[0]||r4.rec);
+                    keys.forEach(k => accumulatedFields[4].add(k));
+                    fieldLists[4] = Array.from(accumulatedFields[4]).sort();
+                    renderFields(4);
+                } 
+            }catch(e){ log("HATA (S4)", e.message); } 
+        }
+
+        updateBar(i+1,maxPreview); 
+        await wait(waitMsGlobal);
+      }
+      
+      if($('#useS2').checked && $('#s2OzelEsas')?.checked) {
+          fieldLists[2] = Array.from(accumulatedFields[2]).sort();
+          renderFields(2);
+          fieldLists[3] = Array.from(accumulatedFields[3]).sort();
+          renderFields(3);
+      }
+
+      $('#stat').textContent = `Ön izleme tamam.`; 
+      log("SİSTEM", "Ön izleme tamamlandı. Tüm alanlar birleştirildi.");
+      try { renderFields(5); } catch(_) {}
+      $('#btnColsSync').click();
+    };
+
+    $('#btnColsSync').onclick = () => {
+        rebuildColumnsFromDOM(); 
+        const existingConfig = [...columnsConfig];
+
+        const currentChecked = new Set();
+        for (let s = 1; s <= SERVICE_COUNT; s++) {
+            const checkedBoxes = document.querySelectorAll('.fld[data-svc="' + s + '"]:checked');
+            checkedBoxes.forEach(cb => currentChecked.add(`${s}::${cb.value}`));
+        }
+
+        const newConfig = [];
+
+        existingConfig.forEach(col => {
+            const key = `${col.svc}::${col.field}`;
+            if (currentChecked.has(key)) {
+                newConfig.push(col); 
+                currentChecked.delete(key); 
+            }
+        });
+
+        for (let s = 1; s <= SERVICE_COUNT; s++) {
+            const checkedBoxes = document.querySelectorAll('.fld[data-svc="' + s + '"]:checked');
+            checkedBoxes.forEach(cb => {
+                const key = `${s}::${cb.value}`;
+                if (currentChecked.has(key)) {
+                    newConfig.push({ 
+                        svc: s, 
+                        field: cb.value, 
+                        alias: ('S' + s + ':' + cb.value), 
+                        type: 'text', 
+                        detailMode: 'auto' 
+                    });
+                }
+            });
+        }
+
+        columnsConfig = newConfig;
+        renderColumnsTable();
+        writeHeader();
+        showToast('Sıralama korunarak güncellendi.', 'success');
+    };
+
+    function loadTplMap(){ try{ return JSON.parse(localStorage.getItem(TPL_KEY)||'{}'); }catch(e){return {};} }
+    function saveTplMap(m){ localStorage.setItem(TPL_KEY, JSON.stringify(m)); }
+    function refreshTplSel(){ $('#tplSelect').innerHTML='<option value="">(şablon yok)</option>'+Object.keys(loadTplMap()).sort().map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join(''); }
+    
+    $('#btnTplSave').onclick = () => {
+      const name = $('#tplName').value.trim(); if(!name){ showToast('Ad yaz','error'); return; }
+      for(let s=1;s<=SERVICE_COUNT;s++) selected[s] = [...document.querySelectorAll('.fld[data-svc="'+s+'"]:checked')].map(c=>c.value);
+      rebuildColumnsFromDOM();
+      const map = loadTplMap(); map[name] = collectConfigFromUI(); saveTplMap(map); refreshTplSel(); $('#tplSelect').value = name; showToast('Kaydedildi','success');
+    };
+    $('#btnTplUpdate').onclick = () => {
+      const name = $('#tplSelect').value; if(!name){ showToast('Listeden bir şablon seçin','error'); return; }
+      if(!confirm(name + ' şablonu güncellenecek. Emin misiniz?')) return;
+      for(let s=1;s<=SERVICE_COUNT;s++) selected[s] = [...document.querySelectorAll('.fld[data-svc="'+s+'"]:checked')].map(c=>c.value);
+      rebuildColumnsFromDOM();
+      const map = loadTplMap(); map[name] = collectConfigFromUI(); saveTplMap(map); 
+      showToast('Güncellendi','success');
+    };
+    $('#btnTplLoad').onclick = () => {
+      const name = $('#tplSelect').value; if(!name){ showToast('Seçim yok','error'); return; }
+      applyConfigToUI(loadTplMap()[name]); showToast('Yüklendi','success');
+    };
+    $('#btnTplDelete').onclick = () => {
+      const name = $('#tplSelect').value; if(!name || !confirm('Silinsin mi?')) return;
+      const map = loadTplMap();
+      delete map[name]; saveTplMap(map); refreshTplSel(); showToast('Silindi','success');
+    };
+    $('#btnTplExport').onclick = () => {
+      const blob = new Blob([JSON.stringify(loadTplMap(),null,2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'gib_sablonlar.json'; document.body.appendChild(a); a.click();
+    };
+    $('#btnTplImport').onclick = () => { $('#tplFile').click(); };
+    $('#tplFile').onchange = (e) => {
+      const f = e.target.files[0]; if(!f) return;
+      const r = new FileReader(); r.onload = (evt) => { try { saveTplMap(Object.assign(loadTplMap(), JSON.parse(evt.target.result))); refreshTplSel(); showToast('İçe aktarıldı','success');
+      } catch(e){ showToast('Hatalı dosya','error'); } }; r.readAsText(f);
+    };
+
+    $('#btnSessSave').onclick = () => saveSession(false);
+    $('#btnSessLoad').onclick = () => {
+        const d = JSON.parse(localStorage.getItem(SESS_KEY)); if(!d){ showToast('Oturum yok','error'); return;
+        }
+        applyConfigToUI(d.cfg); ids=d.ids||[]; lastIndex=d.lastIndex||0; rowsOut=d.rowsOut||[];
+        $('#ids').value = ids.join('\n'); renderColumnsTable(); writeHeader(); paintRows(); showToast('Oturum yüklendi','success');
+    };
+
+    $('#btnCSV').onclick=()=>{
+      if(!rowsOut.length) return;
+      const rows = [[...document.querySelectorAll('#thead th')].map(th=>th.textContent)]; 
+      rebuildColumnsFromDOM();
+      rowsOut.forEach(orig=>{ 
+          const row = [...orig]; 
+          if(columnsConfig.length) columnsConfig.forEach((c,i)=>{ if(row[i+2]!=null && c.type==='text') row[i+2]="'"+row[i+2]; }); 
+          rows.push(row); 
+      });
+      const blob = new Blob(['\ufeff'+rows.map(a=>a.map(v=>'"'+String(v||'').replace(/"/g,'""').replace(/[\r\n]+/g,' ').trim()+'"').join(',')).join('\n')],{type:'text/csv;charset=utf-8'});
+      const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='gib_turbo_sonuc.csv'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},0);
+    };
+
+    $('#btnRetryList').onclick = () => {
+        const errTrs = [...document.querySelectorAll('#tbody tr')].filter(tr => tr.innerText.includes('❌'));
+        if(!errTrs.length) { showToast('Hatalı kayıt bulunamadı','success'); return; }
+        const errorIds = errTrs.map(tr => tr.getAttribute('data-id')).filter(Boolean);
+        if(!errorIds.length) { showToast('ID verisi okunamadı','error'); return; }
+        $('#ids').value = errorIds.join('\n');
+        showToast(`${errorIds.length} hatalı kayıt listeye alındı.`,'info');
+    };
+
+    document.addEventListener('click',e=>{
+      if(e.target.classList.contains('btnApplyDiscovery')){
+        const svc = Number(e.target.getAttribute('data-svc'));
+        const picks = [...document.querySelectorAll(`.discPick[data-svc="${svc}"]:checked`)].map(x=>x.value);
+        if(picks.length === 1) { $('#arrayPath'+svc).value = picks[0]; chosenPathBySvc[svc] = picks[0]; }
+        showToast('Uygulandı','success');
+      }
+      if(e.target.classList.contains('btnUp') || e.target.classList.contains('btnDown')){
+        rebuildColumnsFromDOM(); const tr = e.target.closest('tr'), idx = columnsConfig.findIndex(c=>c.svc===Number(tr.getAttribute('data-svc')) && c.field===tr.getAttribute('data-field'));
+        if(idx>=0){ 
+            if(e.target.classList.contains('btnUp') && idx>0) [columnsConfig[idx-1], columnsConfig[idx]] = [columnsConfig[idx], columnsConfig[idx-1]];
+            if(e.target.classList.contains('btnDown') && idx<columnsConfig.length-1) [columnsConfig[idx+1], columnsConfig[idx]] = [columnsConfig[idx], columnsConfig[idx+1]];
+            renderColumnsTable();
+        }
+      }
+    });
+  
+
+  // --- S5: hazır örnek + satır üretici ---
+  (function(){
+    const $ = (sel)=>document.querySelector(sel);
+
+    function showToast(msg, type){
+      if (typeof toast === "function") return toast(msg, type);
+      console.log("[S5]", msg);
+      alert(msg);
+    }
+
+    function appendLineToS5(lineOrBlock){
+      const ta = $("#evdbMultiConfig");
+      if(!ta) return;
+      const block = (lineOrBlock||"").trim();
+      if(!block) return;
+      const cur = (ta.value||"").trim();
+      ta.value = cur ? (cur + "\n" + block) : block;
+      ta.dispatchEvent(new Event("input", {bubbles:true}));
+    }
+
+    function normalizePipe(s){
+      return (s||"").replace(/\s*\|\s*/g,"|").trim();
+    }
+
+    function autoSuggestPrefix(reportName){
+      const rn = (reportName||"").trim();
+      if(!rn) return "";
+      return rn.replace(/^RP_/,"").split("_").slice(0,4).join("_");
+    }
+
+    function wireS5Helpers(){
+      const btnPaste = $("#s5PasteExamples");
+      const btnToggle = $("#s5ToggleBuilder");
+      const panel = $("#s5Builder");
+      const service = $("#s5ServiceName");
+      const pick = $("#s5ReportPick");
+      const rn = $("#s5ReportName");
+      const pref = $("#s5Prefix");
+      const folder = $("#s5FolderTag");
+      const add = $("#s5AddLine");
+      const clr = $("#s5ClearLine");
+
+      if(!btnPaste || !btnToggle || !panel || !service || !pick || !rn || !pref || !folder || !add || !clr) return;
+
+      btnPaste.addEventListener("click", ()=>{
+        const examples = [
+          "evdoLRHacizServices_vknTcknBazindaDetayListesi|RP_EVDO_EHACIZ_BILDIRI_VKN_BAZINDA_DETAY|EHACIZ_DETAY|EHACIZ",
+          "SERVICE_ADINI_YAZ|RP_EVDO_YSICIL_MUK_ACIZ_HALINDE_OLAN_LISTESI|ACIZ|ACIZ_LISTE",
+          "SERVICE_ADINI_YAZ|RP_EVDO_YOKLAMA_MEMURU_FAALIYET_RAPORU|YOKLAMA|YOKLAMA",
+          "SERVICE_ADINI_YAZ|RP_EVDO_YOKLAMA_BORDROSU|BORDRO|YOKLAMA"
+        ].join("\n");
+        appendLineToS5(examples);
+        showToast("Hazır örnekler eklendi. 'SERVICE_ADINI_YAZ' olan satırlarda serviceName'i Network’ten aldığın değerle değiştir.", "ok");
+      });
+
+      btnToggle.addEventListener("click", ()=>{
+        panel.style.display = (panel.style.display==="none" || !panel.style.display) ? "block" : "none";
+      });
+
+      pick.addEventListener("change", ()=>{
+        if(pick.value){
+          rn.value = pick.value;
+          if(!pref.value) pref.value = autoSuggestPrefix(pick.value);
+        }
+      });
+
+      rn.addEventListener("input", ()=>{
+        if(!pref.value) pref.value = autoSuggestPrefix(rn.value);
+      });
+
+      add.addEventListener("click", ()=>{
+        const s = normalizePipe(service.value);
+        const r = normalizePipe(rn.value);
+        if(!s || !r){
+          showToast("Satır eklemek için serviceName ve reportName dolu olmalı.", "err");
+          return;
+        }
+        const p = normalizePipe(pref.value);
+        const f = normalizePipe(folder.value);
+        const line = f ? `${s}|${r}|${p}|${f}` : `${s}|${r}|${p}`;
+        appendLineToS5(line);
+        showToast("S5 listesine satır eklendi.", "ok");
+      });
+
+      clr.addEventListener("click", ()=>{
+        service.value=""; rn.value=""; pref.value=""; folder.value=""; pick.value="";
+      });
+    }
+
+    window.addEventListener("load", wireS5Helpers);
+  })();
+
+</script>
+</body>
+</html>

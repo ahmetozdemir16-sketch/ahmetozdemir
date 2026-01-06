@@ -1,0 +1,108 @@
+
+// =================================================================
+// 1. ADIM: WIRESHARK/F12 VERİSİNİ BU TIRNAKLARIN İÇİNE YAPIŞTIRIN
+// =================================================================
+var RAW_COOKIE_DATA = "Cookie: JSESSIONID=AAA5C7D185C0327EBBFE2428FF618A06"; 
+// (Örnek: "Cookie: JSESSIONID=ABC12345...; b=1")
+
+
+// =================================================================
+// 2. ADIM: BURADAN AŞAĞISINI HİÇ ELLEMEYİN VE ENTER'A BASIN
+// =================================================================
+(function() {
+    console.clear();
+    console.log("⏳ GİB Çerez İşlemi Başlatılıyor...");
+
+    // 1. Veri Kontrolü
+    if (!RAW_COOKIE_DATA || RAW_COOKIE_DATA.length < 5) {
+        console.error("❌ HATA: En üstteki 'RAW_COOKIE_DATA' alanına veriyi yapıştırmadınız!");
+        return;
+    }
+
+    // 2. Temizlik ("Cookie:" yazısı ve boşluklar)
+    var cleanString = RAW_COOKIE_DATA.replace(/^Cookie:\s*/i, "").trim();
+    var cookies = cleanString.split(';');
+
+    // 3. Sabit Ayarlar (GİB Standartları)
+    var FIXED_DOMAIN = ".gib.gov.tr"; // Kritik: Nokta ile başlar
+    var FIXED_PATH   = "/";
+    
+    // 4. Süre Ayarı: 1 GÜN (24 Saat)
+    var d = new Date();
+    d.setTime(d.getTime() + (24 * 60 * 60 * 1000)); // 1 Gün ekle
+    var expires = "expires=" + d.toUTCString();
+
+    // 5. Eski/Çakışan Çerezleri Temizleme (Önemli!)
+    // Tarayıcının kafası karışmasın diye eski JSESSIONID'yi siliyoruz.
+    document.cookie = "JSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.gib.gov.tr";
+    document.cookie = "JSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=ivd.gib.gov.tr";
+
+    // 6. Yeni Çerezleri Yazma Döngüsü
+    var count = 0;
+    cookies.forEach(function(c) {
+        c = c.trim();
+        if (!c) return;
+
+        var parts = c.split('=');
+        var k = parts[0].trim();
+        // Değerin içinde '=' varsa bozulmasın diye birleştiriyoruz
+        var v = parts.slice(1).join('=').trim();
+
+        if (k && v) {
+            // Çerezi Oluştur ve Yaz
+            // Format: name=value; domain=...; path=...; expires=...; secure
+            var cookieStr = k + "=" + v + "; domain=" + FIXED_DOMAIN + "; path=" + FIXED_PATH + "; " + expires + "; secure";
+            
+            document.cookie = cookieStr;
+            
+            console.log("✅ Eklendi: " + k + " (Süre: 1 Gün)");
+            count++;
+        }
+    });
+
+    console.log("------------------------------------------");
+    console.log("🎉 İŞLEM TAMAMLANDI: " + count + " adet çerez işlendi.");
+    console.log("⚠️ Lütfen sayfayı YENİLEYİN (F5).");
+})();
+
+
+
+
+
+
+
+var tip = (!tckn || String(tckn).trim() === "") ? "2" : "1";
+var eTebligat = eTebligatVarmi(vkn, token[1], tip);
+
+
+
+
+
+
+
+
+var tip = (!tckn || String(tckn).trim() === "") ? "2" : "1";
+var eTebligat = eTebligatVarmi(vkn, token[1], tip);
+
+
+
+
+
+function eTebligatVarmi(vkn, token, mukTuru) { ... }
+
+
+
+
+
+
+var tip = (!tckn || String(tckn).trim() === "") ? "2" : "1";
+var eTebligat = eTebligatVarmi(vkn, tip, token[1]);
+
+
+
+
+
+
+
+
+

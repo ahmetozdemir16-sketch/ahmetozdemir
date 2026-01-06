@@ -1,0 +1,1384 @@
+  <!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Mesai Uyum & İzin Takip • Tam Sürüm</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: system-ui,-apple-system,"Segoe UI",sans-serif;
+      background:#f5f5f7;
+      margin:0;
+    }
+    header {
+      background:#222;
+      color:#fff;
+      padding:10px 20px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    header h1 { margin:0; font-size:18px; }
+    header small { font-size:12px; opacity:0.75; }
+    .container {
+      max-width:1400px;
+      margin:15px auto 40px auto;
+      padding:0 15px;
+    }
+    .tabs {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-bottom:10px;
+    }
+    .tab-btn {
+      border:none;
+      background:#ddd;
+      padding:8px 14px;
+      border-radius:6px;
+      font-size:13px;
+      cursor:pointer;
+    }
+    .tab-btn.active {
+      background:#0077ff;
+      color:#fff;
+      font-weight:600;
+    }
+    section {
+      display:none;
+      background:#fff;
+      border-radius:8px;
+      padding:15px;
+      box-shadow:0 1px 3px rgba(0,0,0,0.08);
+      margin-bottom:12px;
+    }
+    section.active { display:block; }
+    h2 { margin-top:0; font-size:18px; }
+    h3 { margin-top:10px; font-size:15px; border-left:3px solid #0077ff; padding-left:6px; }
+    label { display:inline-block; margin:3px 0; font-size:13px; }
+    input, select, textarea {
+      font-size:13px;
+      padding:4px 6px;
+      border-radius:4px;
+      border:1px solid #ccc;
+      margin:2px 0 6px 0;
+    }
+    input[type="file"] { padding:3px; }
+    textarea { width:100%; min-height:60px; resize:vertical; }
+    button {
+      font-size:13px;
+      padding:6px 10px;
+      border-radius:4px;
+      border:1px solid #0077ff;
+      background:#0077ff;
+      color:#fff;
+      cursor:pointer;
+      margin:3px 0;
+    }
+    button.secondary {
+      background:#e0e0e0;
+      border-color:#c0c0c0;
+      color:#222;
+    }
+    button.danger {
+      background:#d32f2f;
+      border-color:#b71c1c;
+    }
+    .row { display:flex; flex-wrap:wrap; gap:16px; }
+    .col-3 { flex:1 1 260px; }
+    .col-4 { flex:1 1 360px; }
+    .small-info { font-size:11px; color:#555; }
+    table {
+      width:100%;
+      border-collapse:collapse;
+      font-size:12px;
+      margin-top:8px;
+    }
+    th, td {
+      border:1px solid #ddd;
+      padding:4px 6px;
+      text-align:left;
+    }
+    th {
+      background:#f0f0f0;
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+    .table-wrapper {
+      max-height:420px;
+      overflow:auto;
+      border-radius:6px;
+      border:1px solid #ddd;
+    }
+    .badge {
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:10px;
+      font-size:11px;
+      background:#eee;
+    }
+    .badge.ok { background:#c8f7c5; }
+    .badge.warn { background:#ffe0b2; }
+    .badge.err { background:#ffcdd2; }
+    .tag {
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:6px;
+      background:#f3f3f3;
+      font-size:11px;
+      margin:1px 2px;
+    }
+
+    #loginOverlay {
+      position:fixed; inset:0;
+      background:rgba(0,0,0,0.4);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:1000;
+    }
+    #loginBox {
+      background:#fff;
+      padding:20px 24px;
+      border-radius:8px;
+      max-width:320px;
+      width:100%;
+      box-shadow:0 8px 24px rgba(0,0,0,0.25);
+    }
+    #loginBox h2 { margin-top:0; font-size:18px; }
+    input:focus, select:focus, button:focus, textarea:focus {
+      outline:2px solid rgba(0,119,255,0.35);
+      outline-offset:1px;
+    }
+    @media (max-width:768px){
+      header {flex-direction:column; align-items:flex-start;}
+    }
+  </style>
+
+  <!-- SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- Basit login -->
+<div id="loginOverlay">
+  <div id="loginBox">
+    <h2>Mesai Takip Giriş</h2>
+    <label>Kullanıcı Adı:</label><br>
+    <input id="loginUser" type="text" autocomplete="username"><br>
+    <label>Şifre:</label><br>
+    <input id="loginPass" type="password" autocomplete="current-password"><br>
+    <button type="button" onclick="handleLogin()">Giriş Yap</button>
+    <div id="loginMsg" class="small-info" style="margin-top:6px;">
+      Varsayılan: <b>admin / admin</b>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div>
+    <h1>Mesai Uyum &amp; İzin Takip</h1>
+    <small>Gelen / Gelmeyen / Giriş-Çıkış • Çoklu Gün • İzin &amp; Yetki</small>
+  </div>
+  <div id="userPanel" class="small-info">Giriş yapılmadı</div>
+</header>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="kart">1) Kart Dosyaları</button>
+    <button class="tab-btn" data-tab="personel">2) Personel &amp; Servis</button>
+    <button class="tab-btn" data-tab="izin">3) İzinler</button>
+    <button class="tab-btn" data-tab="rapor">4) Mesai Raporu</button>
+    <button class="tab-btn" data-tab="users">5) Kullanıcı &amp; Yetki</button>
+  </div>
+
+  <!-- 1) Kart Dosyaları -->
+  <section id="kart" class="active">
+    <h2>1) Kart Dosyaları • Çoklu Gün + 17:00 Kuralı</h2>
+
+    <div class="row">
+      <div class="col-3">
+        <h3>1.1 Tüm Dosyaları Tek Yerden Yükle</h3>
+        <div class="small-info">
+          Aynı anda birden fazla gün için:<br>
+          <b>Gelen Raporu(...)</b>, <b>Gelmeyen Raporu(...)</b>,
+          <b>Giriş Çıkış Raporu(...)</b> dosyalarını seçebilirsiniz.
+        </div>
+        <label>Rapor dosyaları (çoklu seçim):</label><br>
+        <input type="file" id="kartTopluFile" multiple accept=".xls,.xlsx,.csv"><br>
+        <button type="button" onclick="kartTopluTekYer()">Dosyaları Yükle</button>
+
+        <hr>
+        <h3>1.2 Mesai Parametreleri</h3>
+        <label>Normal Giriş Saati:</label><br>
+        <input type="time" id="paramGiris" value="08:00"><br>
+        <label>Normal Çıkış Saati:</label><br>
+        <input type="time" id="paramCikis" value="17:00"><br>
+        <label>Geç kalma toleransı (dakika):</label><br>
+        <input type="number" id="paramTolerans" value="5" style="width:70px;">
+
+        <hr>
+        <button type="button" class="danger" onclick="kartVerisiniTemizle()">Tüm Kart Verilerini Temizle</button>
+        <div id="kartOzet" class="small-info" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="col-4">
+        <h3>1.3 Son Gün Örneği</h3>
+        <div class="small-info">
+          Aşağıda kayıtlı son güne ait ilk 50 personel örneklenir.<br>
+          17:00 sonrası tek kart varsa <b>ÇIKIŞ</b> olarak yorumlanır.
+        </div>
+        <div class="table-wrapper" id="kartTableWrapper"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2) Personel & Servis -->
+  <section id="personel">
+    <h2>2) Personel &amp; Servis</h2>
+    <div class="row">
+      <div class="col-3">
+        <h3>2.1 Servis Tanımları</h3>
+        <label>Yeni Servis Adı:</label><br>
+        <input type="text" id="yeniServisAd" placeholder="Örn: Vergilendirme Servisi 1"><br>
+        <button type="button" onclick="servisEkle()">Servis Ekle</button>
+        <div id="servisListesi" style="margin-top:8px;"></div>
+
+        <hr>
+        <h3>2.2 Personel Listesini CSV/XLSX'ten Yükle</h3>
+        <label>Personel Dosyası (Sicil/TC;Ad;Servis;Daire):</label><br>
+        <input type="file" id="personelCsvFile" accept=".csv,.xls,.xlsx"><br>
+        <button type="button" onclick="personelCsvYukle()">Personel Listesini Yükle/Güncelle</button>
+        <div class="small-info">
+          Sicil veya TC Kimlik sütunu kimlik olarak alınır.
+        </div>
+      </div>
+      <div class="col-4">
+        <h3>2.3 Personel Listesi</h3>
+        <div class="small-info">
+          Kartlardan ve personel dosyasından oluşur. Buradan servis/daire ataması yapılabilir.
+        </div>
+        <div class="table-wrapper" id="personelTableWrapper"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3) İzinler -->
+  <section id="izin">
+    <h2>3) İzin Girişleri &amp; Çizelgeleri</h2>
+    <div class="row">
+      <div class="col-4">
+        <h3>3.1 Yeni İzin Girişi</h3>
+        <label>Personel (Sicil/TC - Ad):</label><br>
+        <select id="izinPersonel"></select><br>
+
+        <label>Servis:</label><br>
+        <select id="izinServis"></select><br>
+
+        <label>İzin Türü:</label><br>
+        <select id="izinTuru">
+          <option>Yıllık İzin</option>
+          <option>Hastalık İzni</option>
+          <option>İdari İzin</option>
+          <option>Fazla Çalışma İzni</option>
+          <option>Saatlik İzin</option>
+          <option>Tedavi Kontrol İzni</option>
+          <option>Refakat İzni</option>
+          <option>Doğum İzni</option>
+          <option>Babalık İzni</option>
+          <option>Ölüm İzni</option>
+          <option>Evlenme İzni</option>
+          <option>Ücretsiz İzin</option>
+          <option>Geçici Görevli</option>
+        </select><br>
+
+        <label>Başlangıç Tarihi:</label><br>
+        <input type="date" id="izinBasTarih"><br>
+        <label>Bitiş Tarihi:</label><br>
+        <input type="date" id="izinBitTarih"><br>
+
+        <label>Saat Aralığı (opsiyonel):</label><br>
+        <input type="time" id="izinBasSaat"> -
+        <input type="time" id="izinBitSaat"><br>
+
+        <label>
+          <input type="checkbox" id="izinCocukAralik">
+          Tarih aralığındaki iş günlerine her gün için <b>çocuk/saatlik izin</b> oluştur
+        </label><br>
+
+        <label>Açıklama:</label><br>
+        <textarea id="izinAciklama"></textarea>
+
+        <button type="button" onclick="izinEkle()">İzni Kaydet</button>
+      </div>
+      <div class="col-4">
+        <h3>3.2 Servis Bazlı İzin Çizelgesi</h3>
+        <label>Servis Filtresi:</label><br>
+        <select id="izinListeServisFiltre" onchange="izinTablosuGuncelle()"></select>
+        <div style="margin-top:4px;">
+          <span class="tag">Yıllık</span>
+          <span class="tag">Hastalık</span>
+          <span class="tag">İdari</span>
+          <span class="tag">Fazla Çalışma</span>
+          <span class="tag">Saatlik</span>
+          <span class="tag">Tedavi</span>
+          <span class="tag">Refakat vb.</span>
+        </div>
+        <div class="table-wrapper" id="izinTableWrapper" style="margin-top:8px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4) Mesai Raporu -->
+  <section id="rapor">
+    <h2>4) Mesai Uyum Raporu &amp; Excel</h2>
+    <div class="row">
+      <div class="col-3">
+        <h3>4.1 Rapor Kriterleri</h3>
+        <label>Başlangıç Tarihi:</label><br>
+        <input type="date" id="raporBasTarih"><br>
+        <label>Bitiş Tarihi:</label><br>
+        <input type="date" id="raporBitTarih"><br>
+        <button type="button" onclick="mesaiRaporuOlustur()">Rapor Oluştur</button><br>
+        <button type="button" class="secondary" onclick="raporuExceleAktar()">Raporu Excel Olarak İndir</button>
+        <div class="small-info" style="margin-top:6px;">
+          Rapor; kartGunluk + izinler + mesai parametreleri ile oluşturulur.
+        </div>
+      </div>
+      <div class="col-4">
+        <h3>4.2 Rapor Sonuçları</h3>
+        <div class="table-wrapper" id="raporTableWrapper"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5) Kullanıcı & Yetki -->
+  <section id="users">
+    <h2>5) Kullanıcı &amp; Yetki Yönetimi</h2>
+    <div class="row">
+      <div class="col-3">
+        <h3>5.1 Yeni Kullanıcı Ekle</h3>
+        <label>Kullanıcı Adı:</label><br>
+        <input type="text" id="uUsername"><br>
+        <label>Ad Soyad:</label><br>
+        <input type="text" id="uAdSoyad"><br>
+        <label>Rol:</label><br>
+        <select id="uRol">
+          <option value="supervisor">Süpervizör</option>
+          <option value="mudur">Müdür</option>
+          <option value="mudurYardimcisi">Müdür Yardımcısı</option>
+          <option value="servisSefi">Servis Şefi</option>
+        </select><br>
+        <label>Bağlı Servis(ler) (virgüllü):</label><br>
+        <input type="text" id="uServis" placeholder="Vergilendirme Servisi 1, Evrak Servisi"><br>
+        <label>Şifre:</label><br>
+        <input type="password" id="uPass"><br>
+        <button type="button" onclick="userEkle()">Kullanıcıyı Kaydet</button>
+        <button type="button" class="secondary" onclick="ornekKullanicilariYukle()">Örnek Kullanıcıları Yükle</button>
+
+        <hr>
+        <h3>5.2 Kullanıcı Listesini CSV/XLSX'ten Yükle</h3>
+        <label>Kullanıcı Dosyası (KullanıcıAdı;AdSoyad;Rol;Servisler;Sifre):</label><br>
+        <input type="file" id="userCsvFile" accept=".csv,.xls,.xlsx"><br>
+        <button type="button" onclick="userCsvYukle()">Kullanıcı Listesini Yükle/Güncelle</button>
+      </div>
+      <div class="col-4">
+        <h3>5.3 Kullanıcı Listesi</h3>
+        <div class="table-wrapper" id="userTableWrapper"></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // ==========================
+  // BASİT LOGIN
+  // ==========================
+  function handleLogin(){
+    const u = document.getElementById("loginUser").value.trim();
+    const p = document.getElementById("loginPass").value;
+    const msg = document.getElementById("loginMsg");
+
+    loadUsers(); // varsayılan user'lar yüklü olsun
+
+    const found = users.find(x=>x.username===u && x.password===p);
+    if(!found){
+      msg.textContent = "Hatalı kullanıcı adı veya şifre.";
+      return;
+    }
+    currentUser = found;
+    document.getElementById("loginOverlay").style.display = "none";
+    document.getElementById("userPanel").textContent =
+      currentUser.adsoyad + " (" + roleTitle(currentUser.role) + ")";
+
+    applyRolePermissions();
+    userTablosuYaz();
+    personelTablosunuYaz();
+    izinTablosuGuncelle();
+    dropdownlariGuncelle();
+    kartOzetGuncelle();
+    kartTableGoster();
+  }
+
+  function roleTitle(role){
+    switch(role){
+      case "supervisor": return "Süpervizör";
+      case "mudur": return "Müdür";
+      case "mudurYardimcisi": return "Müdür Yardımcısı";
+      case "servisSefi": return "Servis Şefi";
+      default: return role;
+    }
+  }
+
+  function applyRolePermissions(){
+    const r = currentUser.role;
+    const tabKart     = document.querySelector('[data-tab="kart"]');
+    const tabPersonel = document.querySelector('[data-tab="personel"]');
+    const tabIzin     = document.querySelector('[data-tab="izin"]');
+    const tabRapor    = document.querySelector('[data-tab="rapor"]');
+    const tabUsers    = document.querySelector('[data-tab="users"]');
+
+    // Herkes kart, izin, rapor görebilsin
+    tabKart.style.display  = "";
+    tabIzin.style.display  = "";
+    tabRapor.style.display = "";
+
+    if(r==="supervisor"){
+      tabPersonel.style.display = "";
+      tabUsers.style.display    = "";
+    } else if(r==="mudur"){
+      tabPersonel.style.display = "";
+      tabUsers.style.display    = "none";
+    } else {
+      tabPersonel.style.display = "none";
+      tabUsers.style.display    = "none";
+    }
+  }
+
+  // ==========================
+  // SEKME GEÇİŞLERİ
+  // ==========================
+  document.querySelectorAll(".tab-btn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const tab = btn.dataset.tab;
+      document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll("section").forEach(sec=>{
+        sec.classList.toggle("active", sec.id===tab);
+      });
+      if(tab==="kart") kartTableGoster();
+      if(tab==="users") userTablosuYaz();
+      if(tab==="personel") personelTablosunuYaz();
+      if(tab==="izin") izinTablosuGuncelle();
+      if(tab==="rapor") mesaiRaporuOlustur(true);
+    });
+  });
+
+  // ==========================
+  // GLOBAL VERİLER
+  // ==========================
+  let kartGunluk = {}; // kartGunluk["2025-11-18"] = [{key, ad, giris, cikis, kaynak:{gelen,gelmeyen,gc}}]
+  let sonSecilenTarih = null;
+  let personellers = []; // {id,sicil,tcKimlik,ad,servis,daire,kartZorunlu}
+  let servisler = [
+    "Müdür",
+    "Müdür Yardımcısı",
+    "Vergilendirme Servisi 1",
+    "Vergilendirme Servisi 2",
+    "Vergilendirme Servisi 3",
+    "Vergilendirme Servisi 4",
+    "Evrak Servisi",
+    "Sicil Yoklama Servisi",
+    "KDV İade Servisi",
+    "Muhasebe Servisi",
+    "Takip Servisi",
+    "İcra Servisi",
+    "Satış Servisi",
+    "İhtilaflı İşler Servisi",
+    "Özlük Servisi",
+    "Tarama Kontrol Bölümü",
+    "1 Nolu Takdir Komisyonu"
+  ];
+  let izinler = []; // {id, sicil, ad, servis, tur, basTarih, bitTarih, basSaat, bitSaat, aciklama}
+  let users = [];  // {username, adsoyad, role, servis, password}
+  let currentUser = {username:"admin",adsoyad:"Sistem",role:"supervisor",servis:""};
+  let sonRaporVerisi = [];
+
+  // LocalStorage'dan yükleme
+  (function initFromLocal(){
+    try {
+      const kg = localStorage.getItem("kartGunluk_v2");
+      if(kg) kartGunluk = JSON.parse(kg);
+    } catch(e){ console.warn("kartGunluk okunamadı",e); }
+    try {
+      const pl = localStorage.getItem("personellers_v2");
+      if(pl) personellers = JSON.parse(pl);
+    } catch(e){ console.warn("personellers okunamadı",e); }
+    try {
+      const iz = localStorage.getItem("izinler_v2");
+      if(iz) izinler = JSON.parse(iz, (k,v)=>{
+        if(k==="basTarih" || k==="bitTarih") return v? new Date(v):null;
+        return v;
+      });
+    } catch(e){ console.warn("izinler okunamadı",e); }
+    loadUsers();
+    kartOzetGuncelle();
+    kartTableGoster();
+    personelTablosunuYaz();
+    servisListesiniYaz();
+    dropdownlariGuncelle();
+    izinTablosuGuncelle();
+  })();
+
+  function saveKartGunluk(){
+    localStorage.setItem("kartGunluk_v2", JSON.stringify(kartGunluk));
+  }
+  function savePersonellers(){
+    localStorage.setItem("personellers_v2", JSON.stringify(personellers));
+  }
+  function saveIzinler(){
+    const ser = izinler.map(i=>({
+      ...i,
+      basTarih: i.basTarih? i.basTarih.toISOString():null,
+      bitTarih: i.bitTarih? i.bitTarih.toISOString():null
+    }));
+    localStorage.setItem("izinler_v2", JSON.stringify(ser));
+  }
+
+  // ==========================
+  // YARDIMCILAR
+  // ==========================
+  function normalizeName(s){
+    if(!s) return "";
+    return s.toString().trim().toUpperCase().replace(/\s+/g," ");
+  }
+  function parseFileDateFromName(name){
+    const m = name.match(/(\d{2})[.\-](\d{2})[.\-](\d{4})/);
+    if(!m) return null;
+    const [_,g,a,y] = m;
+    return `${y}-${a}-${g}`;
+  }
+  function parseExcelTime(cell){
+    if(cell==null || cell==="") return null;
+    if(cell instanceof Date){
+      const hh=String(cell.getHours()).padStart(2,"0");
+      const mm=String(cell.getMinutes()).padStart(2,"0");
+      const ss=String(cell.getSeconds()).padStart(2,"0");
+      return `${hh}:${mm}:${ss}`;
+    }
+    const s = String(cell).trim();
+    if(!s) return null;
+    const p = s.split(":");
+    if(p.length===2) return `${p[0].padStart(2,"0")}:${p[1].padStart(2,"0")}:00`;
+    if(p.length===3) return `${p[0].padStart(2,"0")}:${p[1].padStart(2,"0")}:${p[2].padStart(2,"0")}`;
+    return null;
+  }
+  function timeToStr(v){
+    if(!v) return null;
+    if(typeof v==="string"){
+      const t=v.trim();
+      if(!t) return null;
+      const p=t.split(":");
+      if(p.length===2) return `${p[0].padStart(2,"0")}:${p[1].padStart(2,"0")}:00`;
+      if(p.length===3) return `${p[0].padStart(2,"0")}:${p[1].padStart(2,"0")}:${p[2].padStart(2,"0")}`;
+      return t;
+    }
+    return null;
+  }
+  function toMin(t){
+    if(!t) return null;
+    const [H,M,S] = t.split(":").map(x=>parseInt(x,10));
+    return (H||0)*60 + (M||0);
+  }
+  function parseDateInput(s){
+    if(!s) return null;
+    const [y,m,d]=s.split("-").map(Number);
+    return new Date(y,m-1,d);
+  }
+  function formatDateTR(date){
+    if(!(date instanceof Date) || isNaN(date)) return "";
+    const d=String(date.getDate()).padStart(2,"0");
+    const m=String(date.getMonth()+1).padStart(2,"0");
+    const y=date.getFullYear();
+    return `${d}.${m}.${y}`;
+  }
+
+  // ==========================
+  // 17:00 SONRASI TEK KART = ÇIKIŞ
+  // ==========================
+  function duzeltKartSaatleri(giris, cikis){
+    let g = giris? giris:null;
+    let c = cikis? cikis:null;
+    const mg = toMin(g);
+    const mc = toMin(c);
+
+    // hiç giriş yok, çıkış 17:00+ ise çıkış olarak kabul
+    if(mg==null && mc!=null && mc>=17*60){
+      return {giris:null, cikis:c};
+    }
+    // hiç çıkış yok, giriş 12:00- ise giriş olarak kabul
+    if(mc==null && mg!=null && mg<=12*60){
+      return {giris:g, cikis:null};
+    }
+    return {giris:g, cikis:c};
+  }
+
+  // ==========================
+  // DOSYALARI TEK YERDEN YÜKLE
+  // ==========================
+  function kartTopluTekYer(){
+    const fileInput = document.getElementById("kartTopluFile");
+    const files = fileInput.files;
+    if(!files.length){
+      alert("Lütfen en az bir dosya seçin.");
+      return;
+    }
+    let done=0;
+    Array.from(files).forEach(file=>{
+      const reader = new FileReader();
+      reader.onload = function(e){
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data,{type:"array"});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws,{defval:""});
+
+        let tur="";
+        const up=file.name.toUpperCase();
+        if(up.includes("GELEN RAPORU")) tur="gelen";
+        else if(up.includes("GELMEYEN RAPORU")) tur="gelmeyen";
+        else if(up.includes("GIRIS") || up.includes("GİRİŞ") || up.includes("ÇIKIŞ") || up.includes("CIKIS"))
+          tur="gc";
+
+        if(!tur){
+          console.warn("Tür anlaşılamadı:",file.name);
+        } else {
+          const tarih=parseFileDateFromName(file.name) || "0000-00-00";
+          if(!kartGunluk[tarih]) kartGunluk[tarih]=[];
+          sonSecilenTarih=tarih;
+          isleDosyaSatirlari(tarih, rows, tur);
+        }
+
+        done++;
+        if(done===files.length){
+          saveKartGunluk();
+          rebuildPersonellersFromKart();
+          kartOzetGuncelle();
+          kartTableGoster();
+          dropdownlariGuncelle();
+          alert("Tüm dosyalar işlendi.");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function isleDosyaSatirlari(tarih, rows, tur){
+    const liste = kartGunluk[tarih];
+    function bulVeyaOlustur(ad){
+      const key=normalizeName(ad);
+      let r=liste.find(x=>x.key===key);
+      if(!r){
+        r={
+          key,
+          ad: ad.toString().trim(),
+          giris:null,
+          cikis:null,
+          kaynak:{gelen:false,gelmeyen:false,gc:false}
+        };
+        liste.push(r);
+      }
+      return r;
+    }
+
+    if(tur==="gelen"){
+      rows.forEach(row=>{
+        const ad=row["AdSoyad"]||row["Ad Soyad"]||"";
+        if(!ad) return;
+        const rec=bulVeyaOlustur(ad);
+        rec.kaynak.gelen=true;
+      });
+    }
+    if(tur==="gelmeyen"){
+      rows.forEach(row=>{
+        const ad=row["AdSoyad"]||row["Ad Soyad"]||"";
+        if(!ad) return;
+        const rec=bulVeyaOlustur(ad);
+        rec.kaynak.gelmeyen=true;
+      });
+    }
+    if(tur==="gc"){
+      rows.forEach(row=>{
+        const ad=row["Ad Soyad"]||row["AdSoyad"]||"";
+        if(!ad) return;
+        const rec=bulVeyaOlustur(ad);
+        rec.kaynak.gc=true;
+
+        const gir = parseExcelTime(row["Giriş Saati"] || row["Giris Saati"]);
+        const cik = parseExcelTime(row["Çıkış Saati"] || row["Cikis Saati"]);
+
+        const saat=duzeltKartSaatleri(gir, cik);
+        if(saat.giris) rec.giris=saat.giris;
+        if(saat.cikis) rec.cikis=saat.cikis;
+      });
+    }
+  }
+
+  function kartOzetGuncelle(){
+    const div=document.getElementById("kartOzet");
+    const gunSay=Object.keys(kartGunluk).length;
+    let satirSay=0;
+    Object.values(kartGunluk).forEach(arr=>satirSay+=arr.length);
+    div.innerHTML=`Kayıtlı gün sayısı: <b>${gunSay}</b> • Toplam kişi-kayıt: <b>${satirSay}</b>`;
+  }
+
+  function kartTableGoster(){
+    const wrap=document.getElementById("kartTableWrapper");
+    const tarihler=Object.keys(kartGunluk).sort();
+    if(!tarihler.length){
+      wrap.innerHTML="<div class='small-info'>Henüz kart verisi yok.</div>";
+      return;
+    }
+    const tarih=sonSecilenTarih || tarihler[tarihler.length-1];
+    const liste=kartGunluk[tarih];
+    let html=`<div class='small-info'>Gösterilen gün: <b>${tarih}</b> (ilk 50 kayıt)</div>`;
+    html+="<table><thead><tr><th>Ad Soyad</th><th>Giriş</th><th>Çıkış</th><th>Kaynak</th></tr></thead><tbody>";
+    liste.slice(0,50).forEach(r=>{
+      const k=[];
+      if(r.kaynak.gelen) k.push("Gelen");
+      if(r.kaynak.gelmeyen) k.push("Gelmeyen");
+      if(r.kaynak.gc) k.push("Giriş-Çıkış");
+      html+=`<tr>
+        <td>${r.ad}</td>
+        <td>${r.giris||""}</td>
+        <td>${r.cikis||""}</td>
+        <td>${k.join(" / ")}</td>
+      </tr>`;
+    });
+    html+="</tbody></table>";
+    wrap.innerHTML=html;
+  }
+
+  function kartVerisiniTemizle(){
+    if(!confirm("Tüm kart verileri (tüm günler) silinecek. Emin misiniz?")) return;
+    kartGunluk={};
+    sonSecilenTarih=null;
+    saveKartGunluk();
+    kartOzetGuncelle();
+    kartTableGoster();
+    document.getElementById("raporTableWrapper").innerHTML="<div class='small-info'>Veri yok.</div>";
+  }
+
+  // ==========================
+  // PERSONEL & SERVİS
+  // ==========================
+  function rebuildPersonellersFromKart(){
+    const map=new Map();
+    for(const [tarih,liste] of Object.entries(kartGunluk)){
+      for(const r of liste){
+        const id=r.key; // isim bazlı id, istersen TC ile değiştirilebilir
+        if(!map.has(id)){
+          map.set(id,{
+            id,
+            sicil:"",
+            tcKimlik:"",
+            ad:r.ad,
+            servis:"",
+            daire:"",
+            kartZorunlu:true
+          });
+        }
+      }
+    }
+    personellers = Array.from(new Map([...map, ...personellers.map(p=>[p.id||p.sicil||p.tcKimlik,p])]).values());
+    savePersonellers();
+    personelTablosunuYaz();
+    dropdownlariGuncelle();
+    servisListesiniYaz();
+  }
+
+  function servisEkle(){
+    const ad=document.getElementById("yeniServisAd").value.trim();
+    if(!ad){ alert("Servis adı girin."); return; }
+    if(!servisler.includes(ad)) servisler.push(ad);
+    servisListesiniYaz();
+    dropdownlariGuncelle();
+    document.getElementById("yeniServisAd").value="";
+  }
+
+  function servisListesiniYaz(){
+    const div=document.getElementById("servisListesi");
+    if(!servisler.length){
+      div.innerHTML="<div class='small-info'>Servis tanımı yok.</div>";
+      return;
+    }
+    div.innerHTML="<div class='small-info'>Servisler:</div>" +
+      servisler.map(s=>`<span class="tag">${s}</span>`).join("");
+  }
+
+  function personelTablosunuYaz(){
+    const wrap=document.getElementById("personelTableWrapper");
+    if(!personellers.length){
+      wrap.innerHTML="<div class='small-info'>Henüz personel yok. Kart yükleyin veya CSV'den içe alın.</div>";
+      return;
+    }
+    let html="<table><thead><tr><th>ID</th><th>TC</th><th>Ad Soyad</th><th>Servis</th><th>Daire</th><th>Kart Zorunlu</th></tr></thead><tbody>";
+    personellers.forEach(p=>{
+      const servisOptions=["<option value=''></option>"]
+        .concat(servisler.map(s=>`<option value="${s}" ${p.servis===s?"selected":""}>${s}</option>`))
+        .join("");
+      html+=`<tr>
+        <td>${p.id||p.sicil||p.tcKimlik||""}</td>
+        <td><input type="text" value="${p.tcKimlik||""}" data-id="${p.id}" onchange="personelTcDegistir(this)"></td>
+        <td>${p.ad||""}</td>
+        <td>
+          <select data-id="${p.id}" onchange="personelServisDegistir(this)">
+            ${servisOptions}
+          </select>
+        </td>
+        <td><input type="text" value="${p.daire||""}" data-id="${p.id}" onchange="personelDaireDegistir(this)"></td>
+        <td style="text-align:center;">
+          <input type="checkbox" data-id="${p.id}" onchange="personelKartZorunluDegistir(this)" ${p.kartZorunlu!==false?"checked":""}>
+        </td>
+      </tr>`;
+    });
+    html+="</tbody></table>";
+    wrap.innerHTML=html;
+  }
+
+  function personelServisDegistir(sel){
+    const id=sel.getAttribute("data-id");
+    const servis=sel.value;
+    const p=personellers.find(x=>x.id===id);
+    if(p) p.servis=servis;
+    savePersonellers();
+    dropdownlariGuncelle();
+  }
+  function personelDaireDegistir(inp){
+    const id=inp.getAttribute("data-id");
+    const daire=inp.value;
+    const p=personellers.find(x=>x.id===id);
+    if(p) p.daire=daire;
+    savePersonellers();
+  }
+  function personelTcDegistir(inp){
+    const id=inp.getAttribute("data-id");
+    const tc=inp.value.trim();
+    const p=personellers.find(x=>x.id===id);
+    if(p) p.tcKimlik=tc;
+    savePersonellers();
+  }
+  function personelKartZorunluDegistir(chk){
+    const id=chk.getAttribute("data-id");
+    const zor=chk.checked;
+    const p=personellers.find(x=>x.id===id);
+    if(p) p.kartZorunlu=zor;
+    savePersonellers();
+  }
+
+  function personelCsvYukle(){
+    const input=document.getElementById("personelCsvFile");
+    if(!input.files.length){
+      alert("Personel dosyası seçin.");
+      return;
+    }
+    const file=input.files[0];
+    const reader=new FileReader();
+    reader.onload=function(e){
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:"array"});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
+
+      let ekl=0, gunc=0;
+      rows.forEach(r=>{
+        const rawTc=r["TC"]||r["TC Kimlik"]||r["TCKimlik"]||"";
+        const rawSicil=r["Sicil"]||r["Sicil No"]||"";
+        const id=(rawSicil||rawTc||"").toString().trim();
+        if(!id) return;
+        const ad=r["Ad"]||r["Ad Soyad"]||r["AdSoyad"]||"";
+        const servis=r["Servis"]||"";
+        const daire=r["Daire"]||"";
+        let p=personellers.find(x=>x.id===id);
+        if(p){
+          if(ad) p.ad=ad;
+          if(servis) p.servis=servis;
+          if(daire) p.daire=daire;
+          if(rawTc) p.tcKimlik=rawTc;
+          gunc++;
+        } else {
+          p={
+            id,
+            sicil:rawSicil||"",
+            tcKimlik:rawTc||"",
+            ad,
+            servis,
+            daire,
+            kartZorunlu:true
+          };
+          personellers.push(p);
+          ekl++;
+        }
+        if(servis && !servisler.includes(servis)) servisler.push(servis);
+      });
+      savePersonellers();
+      servisListesiniYaz();
+      personelTablosunuYaz();
+      dropdownlariGuncelle();
+      alert("Personel dosyası işlendi. Yeni:"+ekl+" Güncellenen:"+gunc);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // ==========================
+  // DROPDOWNLAR (PERSONEL / SERVİS)
+  // ==========================
+  function dropdownlariGuncelle(){
+    const izinPers=document.getElementById("izinPersonel");
+    const izinServ=document.getElementById("izinServis");
+    const izinListeServFiltre=document.getElementById("izinListeServisFiltre");
+
+    // personel listesi
+    izinPers.innerHTML="";
+    const opt0=document.createElement("option");
+    opt0.value="";
+    opt0.textContent="Seçiniz";
+    izinPers.appendChild(opt0);
+    personellers.forEach(p=>{
+      const opt=document.createElement("option");
+      opt.value=p.id;
+      opt.textContent=(p.id||"")+" - "+(p.ad||"");
+      izinPers.appendChild(opt);
+    });
+
+    // servis listeleri
+    function fillServis(sel, firstLabel){
+      sel.innerHTML="";
+      const o=document.createElement("option");
+      o.value="";
+      o.textContent=firstLabel;
+      sel.appendChild(o);
+      servisler.forEach(s=>{
+        const opt=document.createElement("option");
+        opt.value=s;
+        opt.textContent=s;
+        sel.appendChild(opt);
+      });
+    }
+    fillServis(izinServ,"Seçiniz");
+    fillServis(izinListeServFiltre,"Tümü");
+  }
+
+  // ==========================
+  // İZİN İŞLEMLERİ
+  // ==========================
+  function izinEkle(){
+    const pid=document.getElementById("izinPersonel").value;
+    const srv=document.getElementById("izinServis").value;
+    const tur=document.getElementById("izinTuru").value;
+    const basStr=document.getElementById("izinBasTarih").value;
+    const bitStr=document.getElementById("izinBitTarih").value;
+    const basSaat=document.getElementById("izinBasSaat").value;
+    const bitSaat=document.getElementById("izinBitSaat").value;
+    const aciklama=document.getElementById("izinAciklama").value.trim();
+    const cocuk=document.getElementById("izinCocukAralik").checked;
+
+    if(!pid || !srv || !basStr || !bitStr){
+      alert("Personel, servis ve tarih zorunlu.");
+      return;
+    }
+    const basT=parseDateInput(basStr);
+    const bitT=parseDateInput(bitStr);
+    if(!basT || !bitT || basT>bitT){
+      alert("Tarih aralığını kontrol edin.");
+      return;
+    }
+    const p=personellers.find(x=>x.id===pid);
+    const ad=p?p.ad:"";
+
+    if(cocuk){
+      if(tur!=="Saatlik İzin"){
+        alert("Çocuk izni için tür 'Saatlik İzin' olmalı.");
+        return;
+      }
+      if(!basSaat || !bitSaat){
+        alert("Saatlik çocuk izni için saat aralığı zorunludur.");
+        return;
+      }
+      let say=0;
+      let cur=new Date(basT.getTime());
+      while(cur<=bitT){
+        const day=cur.getDay();
+        if(day!==0 && day!==6){
+          const gun=new Date(cur.getFullYear(),cur.getMonth(),cur.getDate());
+          izinler.push({
+            id: Date.now()+"_"+Math.random().toString(36).slice(2),
+            sicil:pid,
+            ad,
+            servis:srv,
+            tur:"Saatlik İzin",
+            basTarih:gun,
+            bitTarih:gun,
+            basSaat,
+            bitSaat,
+            aciklama: aciklama? aciklama+" (Çocuk İzni)":"Çocuk İzni"
+          });
+          say++;
+        }
+        cur.setDate(cur.getDate()+1);
+      }
+      saveIzinler();
+      izinTablosuGuncelle();
+      alert("Çocuk izni kaydedildi. İş günü sayısı: "+say);
+      return;
+    }
+
+    izinler.push({
+      id: Date.now()+"_"+Math.random().toString(36).slice(2),
+      sicil:pid,
+      ad,
+      servis:srv,
+      tur,
+      basTarih:basT,
+      bitTarih:bitT,
+      basSaat:basSaat||null,
+      bitSaat:bitSaat||null,
+      aciklama
+    });
+    saveIzinler();
+    izinTablosuGuncelle();
+    alert("İzin kaydedildi.");
+  }
+
+  function izinTablosuGuncelle(){
+    const wrap=document.getElementById("izinTableWrapper");
+    if(!izinler.length){
+      wrap.innerHTML="<div class='small-info'>İzin kaydı yok.</div>";
+      return;
+    }
+    const srvFil=document.getElementById("izinListeServisFiltre").value;
+    let flt=izinler.slice();
+    if(srvFil) flt=flt.filter(i=>i.servis===srvFil);
+    if(!flt.length){
+      wrap.innerHTML="<div class='small-info'>Bu servise ait izin yok.</div>";
+      return;
+    }
+    let html="<table><thead><tr><th>Servis</th><th>Personel</th><th>Tür</th><th>Başlangıç</th><th>Bitiş</th><th>Saat</th><th>Açıklama</th></tr></thead><tbody>";
+    flt.forEach(i=>{
+      const saat=(i.basSaat && i.bitSaat)? `${i.basSaat}-${i.bitSaat}`:"";
+      const ad = i.ad || (personellers.find(p=>p.id===i.sicil)?.ad || "");
+      html+=`<tr>
+        <td>${i.servis}</td>
+        <td>${ad}</td>
+        <td>${i.tur}</td>
+        <td>${formatDateTR(i.basTarih)}</td>
+        <td>${formatDateTR(i.bitTarih)}</td>
+        <td>${saat}</td>
+        <td>${i.aciklama||""}</td>
+      </tr>`;
+    });
+    html+="</tbody></table>";
+    wrap.innerHTML=html;
+  }
+
+  // ==========================
+  // MESAI RAPORU
+  // ==========================
+  function mesaiRaporuOlustur(sessiz){
+    const bas=document.getElementById("raporBasTarih").value;
+    const bit=document.getElementById("raporBitTarih").value;
+    const wrap=document.getElementById("raporTableWrapper");
+
+    const allDates=Object.keys(kartGunluk).sort();
+    if(!allDates.length){
+      wrap.innerHTML="<div class='small-info'>Kart verisi yok.</div>";
+      return;
+    }
+
+    const basD=bas || allDates[0];
+    const bitD=bit || allDates[allDates.length-1];
+
+    const paramG=document.getElementById("paramGiris").value || "08:00";
+    const paramC=document.getElementById("paramCikis").value || "17:00";
+    const tol=parseInt(document.getElementById("paramTolerans").value||"0",10);
+
+    const minG=toMin(timeToStr(paramG));
+    const minC=toMin(timeToStr(paramC));
+
+    const raporSatirlari=[];
+
+    for(const tarih of allDates){
+      if(tarih<basD || tarih>bitD) continue;
+      const liste=kartGunluk[tarih];
+
+      liste.forEach(r=>{
+        const mg=toMin(r.giris);
+        const mc=toMin(r.cikis);
+
+        let durum="";
+        let cls="badge";
+
+        if(mg!=null && mc!=null){
+          if(minG!=null && mg>minG+tol){
+            durum="Geç Geldi"; cls="badge warn";
+          } else if(minC!=null && mc<minC){
+            durum="Erken Çıktı"; cls="badge warn";
+          } else {
+            durum="Uygun"; cls="badge ok";
+          }
+        } else if(mg!=null && mc==null){
+          durum="Akşam Çıkış Kartı Yok"; cls="badge warn";
+        } else if(mg==null && mc!=null){
+          durum="Sabah Giriş Kartı Yok"; cls="badge warn";
+        } else {
+          durum="Kart Kaydı Yok"; cls="badge err";
+        }
+
+        const notlar=[];
+        if(r.kaynak.gelen) notlar.push("Sabah listesi: Gelen");
+        if(r.kaynak.gelmeyen) notlar.push("Sabah listesi: Gelmeyen");
+        if(r.kaynak.gelmeyen && mg!=null){
+          notlar.push("Sabah 'Gelmeyen' listesinde ama giriş var → kontrol");
+        }
+
+        // İzin bilgisi ekle (gün bazında)
+        const gunT=parseDateInput(tarih);
+        const ilgiliIzinler=izinler.filter(i=>gunT>=i.basTarih && gunT<=i.bitTarih);
+        const adKey=normalizeName(r.ad);
+        let izinText=[];
+        ilgiliIzinler.forEach(i=>{
+          const p = personellers.find(p=>p.id===i.sicil);
+          if(p && normalizeName(p.ad)===adKey){
+            let t=i.tur;
+            if(i.basSaat && i.bitSaat) t+=` ${i.basSaat}-${i.bitSaat}`;
+            if(i.aciklama) t+=" ("+i.aciklama+")";
+            izinText.push(t);
+          }
+        });
+
+        raporSatirlari.push({
+          Tarih:tarih,
+          "Ad Soyad":r.ad,
+          Giriş:r.giris||"",
+          Çıkış:r.cikis||"",
+          Durum:durum,
+          Not:[...notlar,...izinText].join(" | ")
+        });
+      });
+    }
+
+    sonRaporVerisi=raporSatirlari;
+
+    if(!raporSatirlari.length){
+      wrap.innerHTML="<div class='small-info'>Bu tarih aralığında kayıt bulunamadı.</div>";
+      return;
+    }
+
+    let html="<table><thead><tr><th>Tarih</th><th>Ad Soyad</th><th>Giriş</th><th>Çıkış</th><th>Durum</th><th>Not</th><th>Elle Düzelt</th></tr></thead><tbody>";
+    raporSatirlari.forEach(r=>{
+      let cls="badge";
+      if(r.Durum==="Uygun") cls="badge ok";
+      else if(r.Durum==="Kart Kaydı Yok") cls="badge err";
+      else if(r.Durum) cls="badge warn";
+
+      html+=`<tr>
+        <td>${r.Tarih}</td>
+        <td>${r["Ad Soyad"]}</td>
+        <td>${r.Giriş}</td>
+        <td>${r.Çıkış}</td>
+        <td><span class="${cls}">${r.Durum}</span></td>
+        <td>${r.Not||""}</td>
+        <td><button type="button" class="secondary" onclick="manuelDuzenle('${r.Tarih}','${encodeURIComponent(r["Ad Soyad"])}')">Düzelt</button></td>
+      </tr>`;
+    });
+    html+="</tbody></table>";
+    wrap.innerHTML=html;
+  }
+
+  function manuelDuzenle(tarih, adEnc){
+    const ad=decodeURIComponent(adEnc);
+    const liste=kartGunluk[tarih];
+    if(!liste){ alert("Tarih için kayıt yok."); return; }
+    const key=normalizeName(ad);
+    const rec=liste.find(x=>x.key===key);
+    if(!rec){ alert("Bu ad için kayıt yok."); return; }
+
+    const yeniG=prompt("Yeni Giriş (HH:MM veya boş):", rec.giris||"");
+    const yeniC=prompt("Yeni Çıkış (HH:MM veya boş):", rec.cikis||"");
+
+    rec.giris = yeniG? timeToStr(yeniG):null;
+    rec.cikis = yeniC? timeToStr(yeniC):null;
+
+    saveKartGunluk();
+    mesaiRaporuOlustur(true);
+    kartTableGoster();
+  }
+
+  function raporuExceleAktar(){
+    if(!sonRaporVerisi || !sonRaporVerisi.length){
+      alert("Önce rapor oluşturun.");
+      return;
+    }
+    const ws=XLSX.utils.json_to_sheet(sonRaporVerisi);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Mesai Raporu");
+    XLSX.writeFile(wb,"mesai_raporu.xlsx");
+  }
+
+  // ==========================
+  // KULLANICI & YETKI
+  // ==========================
+  function loadUsers(){
+    const raw=localStorage.getItem("mtUsers_v2");
+    if(raw){
+      try{ users=JSON.parse(raw)||[]; }catch{ users=[]; }
+    }
+    if(!Array.isArray(users)) users=[];
+    if(!users.length){
+      users.push({username:"admin",adsoyad:"Sistem Yöneticisi",role:"supervisor",servis:"",password:"admin"});
+      saveUsers();
+    }
+  }
+  function saveUsers(){
+    localStorage.setItem("mtUsers_v2", JSON.stringify(users));
+  }
+  function userEkle(){
+    if(!currentUser || currentUser.role!=="supervisor"){
+      alert("Sadece Süpervizör kullanıcı ekleyebilir.");
+      return;
+    }
+    const username=document.getElementById("uUsername").value.trim();
+    const adsoyad=document.getElementById("uAdSoyad").value.trim();
+    const rol=document.getElementById("uRol").value;
+    const servis=document.getElementById("uServis").value.trim();
+    const pass=document.getElementById("uPass").value;
+    if(!username || !adsoyad || !pass){
+      alert("Kullanıcı adı, ad soyad ve şifre zorunlu.");
+      return;
+    }
+    if(users.find(u=>u.username===username)){
+      alert("Bu kullanıcı adı zaten var.");
+      return;
+    }
+    users.push({username,adsoyad,role:rol,servis,password:pass});
+    saveUsers();
+    userTablosuYaz();
+    alert("Kullanıcı eklendi.");
+  }
+  function userTablosuYaz(){
+    const wrap=document.getElementById("userTableWrapper");
+    if(!currentUser || currentUser.role!=="supervisor"){
+      wrap.innerHTML="<div class='small-info'>Bu sekme sadece Süpervizör içindir.</div>";
+      return;
+    }
+    if(!users.length){
+      wrap.innerHTML="<div class='small-info'>Kayıtlı kullanıcı yok.</div>";
+      return;
+    }
+    let html="<table><thead><tr><th>Kullanıcı</th><th>Ad Soyad</th><th>Rol</th><th>Servisler</th><th>İşlem</th></tr></thead><tbody>";
+    users.forEach(u=>{
+      html+=`<tr>
+        <td>${u.username}</td>
+        <td>${u.adsoyad}</td>
+        <td>${roleTitle(u.role)}</td>
+        <td>${u.servis||""}</td>
+        <td>
+          <button class="secondary" onclick="userSifreSifirla('${u.username}')">Şifre Sıfırla</button>
+          ${u.username!=="admin"? `<button class="danger" onclick="userSil('${u.username}')">Sil</button>`:""}
+        </td>
+      </tr>`;
+    });
+    html+="</tbody></table>";
+    wrap.innerHTML=html;
+  }
+  function userSifreSifirla(username){
+    if(!currentUser || currentUser.role!=="supervisor") return;
+    const u=users.find(x=>x.username===username);
+    if(!u) return;
+    const y=prompt("Yeni şifre:", "");
+    if(!y) return;
+    u.password=y;
+    saveUsers();
+    alert("Şifre güncellendi.");
+  }
+  function userSil(username){
+    if(!currentUser || currentUser.role!=="supervisor") return;
+    if(username==="admin"){
+      alert("admin silinemez, sadece şifresini değiştirin.");
+      return;
+    }
+    if(!confirm(username+" silinsin mi?")) return;
+    users=users.filter(u=>u.username!==username);
+    saveUsers();
+    userTablosuYaz();
+  }
+  function ornekKullanicilariYukle(){
+    if(!currentUser || currentUser.role!=="supervisor"){
+      alert("Örnek kullanıcıları sadece Süpervizör yükleyebilir.");
+      return;
+    }
+    const samples=[
+      {username:"ahmet_super",adsoyad:"Ahmet Özdemir",role:"supervisor",servis:"",password:"1234"},
+      {username:"vergi_mudur",adsoyad:"Vergilendirme Müdürü",role:"mudur",servis:"Vergilendirme Servisi 1, Vergilendirme Servisi 2, Vergilendirme Servisi 3",password:"1234"},
+      {username:"verg1_sef",adsoyad:"Vergilendirme 1 Şefi",role:"servisSefi",servis:"Vergilendirme Servisi 1",password:"1234"},
+      {username:"evrak_sef",adsoyad:"Evrak Şefi",role:"servisSefi",servis:"Evrak Servisi",password:"1234"},
+      {username:"takip_sef",adsoyad:"Takip Şefi",role:"servisSefi",servis:"Takip Servisi",password:"1234"}
+    ];
+    let ekl=0;
+    samples.forEach(s=>{
+      if(!users.find(u=>u.username===s.username)){ users.push(s); ekl++; }
+    });
+    saveUsers();
+    userTablosuYaz();
+    alert("Örnek kullanıcı sayısı: "+ekl+" (şifre: 1234)");
+  }
+
+  function userCsvYukle(){
+    if(!currentUser || currentUser.role!=="supervisor"){
+      alert("Kullanıcı listesini sadece Süpervizör yükleyebilir.");
+      return;
+    }
+    const input=document.getElementById("userCsvFile");
+    if(!input.files.length){
+      alert("Kullanıcı dosyası seçin.");
+      return;
+    }
+    const file=input.files[0];
+    const reader=new FileReader();
+    reader.onload=function(e){
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:"array"});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
+      let ekl=0,gunc=0;
+      rows.forEach(r=>{
+        const username=r["KullanıcıAdı"]||r["KullaniciAdi"]||r["username"]||r["Kullanıcı Adı"]||"";
+        if(!username) return;
+        const adsoyad=r["AdSoyad"]||r["Ad Soyad"]||username;
+        let rol=(r["Rol"]||"").toString().toLowerCase();
+        if(rol==="süpervizör"||rol==="supervisor") rol="supervisor";
+        else if(rol==="müdür"||rol==="mudur") rol="mudur";
+        else if(rol.includes("yard")) rol="mudurYardimcisi";
+        else rol="servisSefi";
+        const servis=r["Servisler"]||r["Servis"]||"";
+        const sifre=r["Sifre"]||r["Şifre"]||r["Password"]||"1234";
+        let u=users.find(x=>x.username===username);
+        if(u){
+          u.adsoyad=adsoyad; u.role=rol; u.servis=servis; u.password=sifre; gunc++;
+        } else {
+          users.push({username,adsoyad,role:rol,servis,password:sifre}); ekl++;
+        }
+      });
+      saveUsers();
+      userTablosuYaz();
+      alert("Kullanıcı listesi işlendi. Yeni:"+ekl+" Güncellenen:"+gunc);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+</script>
+
+</body>
+</html>

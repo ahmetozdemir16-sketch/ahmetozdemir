@@ -1,0 +1,1396 @@
+ <!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>GİB • 4 Servis Zincir Sorgu (Tam Sürüm + Sütun Tipi + Otomatik Kayıt)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --bg:#060912;--card:#121826;--mut:#9aa6bf;--ink:#eaf0ff;
+  --acc:#6ea8fe;--ok:#3ccf91;--err:#ff6b6b;--bd:#232b3a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1200px;margin:18px auto;padding:0 14px 40px}
+h1{font-size:18px;margin:4px 0 10px}
+small{color:var(--mut)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;
+  padding:10px 12px;margin-top:10px}
+.grid{display:grid;gap:8px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.g4{grid-template-columns:1fr 1fr 1fr 1fr}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+label{display:block;color:var(--mut);margin-bottom:3px;font-size:12px}
+input,textarea,select{
+  width:100%;background:#050814;border-radius:8px;border:1px solid #273048;
+  padding:7px 9px;color:var(--ink);font:12px/1.4 monospace}
+textarea{min-height:70px;resize:vertical;white-space:pre}
+button{
+  border:0;border-radius:8px;padding:7px 11px;font-weight:600;
+  cursor:pointer;background:var(--acc);color:#02050b;font-size:13px}
+button.ok{background:var(--ok);color:#00170c}
+button.danger{background:#ff7676;color:#2a0000}
+button.secondary{background:#262f45;color:var(--ink)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.mono{font-family:monospace}
+.err{color:var(--err)}
+fieldset{border:1px solid #273048;border-radius:10px;padding:8px;margin:0}
+legend{padding:0 6px;color:#c7d7ff}
+#progressOuter{margin-top:6px;height:6px;background:#111724;border-radius:99px;overflow:hidden}
+#progressInner{height:100%;width:0;background:var(--acc);transition:width .15s}
+#barText{font-size:11px;color:var(--mut);margin-left:4px}
+table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+th,td{border:1px solid #273048;padding:4px 6px;text-align:left;vertical-align:top}
+th{background:#191f30;position:sticky;top:0;z-index:5}
+.bad{color:var(--err);font-weight:600}
+.tag{display:inline-block;padding:1px 6px;border-radius:99px;font-size:11px;
+  background:#1f2738;color:var(--mut);margin-left:4px}
+.checkbox-row{display:flex;align-items:center;gap:6px;font-size:12px}
+.checkbox-row input{width:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>GİB • 4 Servis Zincir Sorgu</h1>
+
+  <!-- GENEL AYARLAR -->
+  <div class="card">
+    <div class="grid g3">
+      <div>
+        <label>Token veya Token URL</label>
+        <input id="token" placeholder="...welcome.jsp?token=...">
+      </div>
+      <div>
+        <label>JSESSIONID (opsiyonel)</label>
+        <input id="cookie" placeholder="JSESSIONID=...; Path=/gibintranet">
+      </div>
+      <div>
+        <label>Kimlik Listesi (VKN / Vergi No) – her satıra bir</label>
+        <textarea id="ids" placeholder="0070583778&#10;0010709079"></textarea>
+      </div>
+    </div>
+
+    <div class="grid g4" style="margin-top:8px">
+      <div>
+        <label>Kimlik Türü</label>
+        <select id="idType">
+          <option value="vkn">VKN / Vergi No</option>
+          <option value="tckn">TCKN</option>
+        </select>
+      </div>
+      <div>
+        <label>Bekleme (ms)</label>
+        <input id="waitMs" value="1200">
+      </div>
+      <div>
+        <label>Ön İzlemede kaç ID?</label>
+        <input id="previewCount" value="5">
+      </div>
+      <div>
+        <label>Tam Çalıştırmada en fazla kaç ID? (boş = hepsi)</label>
+        <input id="runCount" placeholder="örn: 200">
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:8px">
+      <label class="checkbox-row">
+        <input type="checkbox" id="autoThrottle" checked>
+        Otomatik yavaşlat (çok hata olursa beklemeyi artır)
+      </label>
+      <span class="tag">Retry: 3 deneme</span>
+    </div>
+
+    <div class="row" style="margin-top:8px">
+      <button id="btnPreview">1) Ön İzleme</button>
+      <button id="btnRun" class="ok">2) Tüm Listeyi Çalıştır</button>
+      <button id="btnRetryList" class="secondary">Hatalıları Listeye Aktar</button>
+      <button id="btnCSV" class="secondary" disabled>CSV indir</button>
+      <span id="stat" class="mono" style="margin-left:auto;color:var(--mut)"></span>
+    </div>
+    <div class="row">
+      <div id="progressOuter" style="flex:1">
+        <div id="progressInner"></div>
+      </div>
+      <span id="barText"></span>
+    </div>
+  </div>
+
+  <!-- ŞABLON & ÇALIŞMA YÖNETİMİ -->
+  <div class="card">
+    <div class="grid g3">
+      <div>
+        <label>Yeni Şablon Adı</label>
+        <input id="tplName" placeholder="örn: KDV İade 4 Servis">
+      </div>
+      <div>
+        <label>Kayıtlı Şablonlar</label>
+        <select id="tplSelect"><option value="">(şablon yok)</option></select>
+      </div>
+      <div class="row" style="margin-top:18px">
+        <button id="btnTplSave" class="secondary">Şablon Kaydet</button>
+        <button id="btnTplLoad" class="secondary">Şablon Yükle</button>
+        <button id="btnTplDelete" class="danger">Şablon Sil</button>
+        <button id="btnTplExport" class="secondary">Şablon Dışa Aktar</button>
+        <button id="btnTplImport" class="secondary">Şablon İçe Aktar</button>
+        <input type="file" id="tplFile" accept="application/json" style="display:none">
+      </div>
+    </div>
+    <div class="grid g3" style="margin-top:8px">
+      <div>
+        <label>Excel Kimlik Sütunu Başlığı</label>
+        <input id="idColName" value="Vergi No">
+      </div>
+      <div>
+        <label>Kimlik Değeri JSON Path (opsiyonel)</label>
+        <input id="idPath" placeholder="ör: S1.vergino veya S2.vdler[0].vkn">
+      </div>
+      <div>
+        <label>Not</label>
+        <small>Token & Kimlik listesi şablona kaydedilmez.</small>
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="btnSessSave" class="secondary">Çalışmayı Kaydet</button>
+      <button id="btnSessLoad" class="secondary">Çalışmayı Yükle</button>
+      <small style="margin-left:4px">Durdurunca da otomatik kaydeder.</small>
+    </div>
+  </div>
+
+  <!-- SERVİS 1 -->
+  <div class="card">
+    <fieldset>
+      <legend>Servis 1 (sicil / kimlik / vergi bilgisi)</legend>
+      <div class="checkbox-row" style="margin-bottom:6px">
+        <input type="checkbox" id="useS1" checked disabled>
+        <span>S1 zorunlu (kimlik / sicil başlangıcı)</span>
+      </div>
+      <div class="grid g3">
+        <div><label>Dispatch (S1)</label><input id="dispatch1" placeholder="http://.../dispatch"></div>
+        <div><label>cmd (S1)</label><input id="cmd1" placeholder="sicilService_..."></div>
+        <div><label>Kayıt Dizisi Path (S1)</label><input id="arrayPath1" placeholder="ör: data"></div>
+      </div>
+      <div class="grid g2" style="margin-top:6px">
+        <div>
+          <label>JP Şablonu (S1)</label>
+          <textarea id="tpl1" placeholder='{"vkn":"[ID]"}'></textarea>
+          <small>Yer tutucu: <b>[ID]</b></small>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+
+  <!-- SERVİS 2 -->
+  <div class="card">
+    <fieldset>
+      <legend>Servis 2 (VD listesi / 2. seviye sorgu)</legend>
+      <div class="checkbox-row" style="margin-bottom:6px">
+        <input type="checkbox" id="useS2" checked>
+        <span>Bu servisi kullan</span>
+      </div>
+      <div class="grid g3">
+        <div><label>Dispatch (S2)</label><input id="dispatch2"></div>
+        <div><label>cmd (S2)</label><input id="cmd2"></div>
+        <div><label>Kayıt Dizisi Path (S2)</label><input id="arrayPath2" placeholder="ör: data.vdler"></div>
+      </div>
+      <div class="grid g2" style="margin-top:6px">
+        <div>
+          <label>JP Şablonu (S2)</label>
+          <textarea id="tpl2" placeholder='{"vkn":"[ID]"}'></textarea>
+          <small>Yer tutucu: <b>[ID]</b> ve <b>[S1:alan]</b></small>
+        </div>
+        <div style="padding-top:18px">
+          <label class="checkbox-row">
+            <input type="checkbox" id="expand2" checked>
+            Bu servisin çoklu kayıtlarını satıra çoğalt (VD bazlı)
+          </label>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+
+  <!-- SERVİS 3 -->
+  <div class="card">
+    <fieldset>
+      <legend>Servis 3 (iade / mahsup özet)</legend>
+      <div class="checkbox-row" style="margin-bottom:6px">
+        <input type="checkbox" id="useS3" checked>
+        <span>Bu servisi kullan</span>
+      </div>
+      <div class="grid g3">
+        <div><label>Dispatch (S3)</label><input id="dispatch3"></div>
+        <div><label>cmd (S3)</label><input id="cmd3"></div>
+        <div><label>Kayıt Dizisi Path (S3)</label><input id="arrayPath3" placeholder="ör: data.iadeMahsupKlm"></div>
+      </div>
+      <div class="grid g3" style="margin-top:6px">
+        <div>
+          <label>Filtre Path (S3 kaydında)</label>
+          <input id="filterPath3" placeholder="ör: durum">
+        </div>
+        <div>
+          <label>Filtre Değerleri (virgülle)</label>
+          <input id="filterValues3" placeholder="ör: 1-1,1-3">
+        </div>
+        <div style="padding-top:18px">
+          <label class="checkbox-row">
+            <input type="checkbox" id="expand3" checked>
+            Çoklu iade kayıtlarını satıra çoğalt
+          </label>
+        </div>
+      </div>
+      <div class="grid g2" style="margin-top:6px">
+        <div>
+          <label>JP Şablonu (S3)</label>
+          <textarea id="tpl3" placeholder='{"vkn":"[ID]","vdKodu":"[S2:vdKodu]"}'></textarea>
+          <small>[ID], [S1:alan], [S2:alan] kullanabilirsin.</small>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+
+  <!-- SERVİS 4 -->
+  <div class="card">
+    <fieldset>
+      <legend>Servis 4 (iade / mahsup detay)</legend>
+      <div class="checkbox-row" style="margin-bottom:6px">
+        <input type="checkbox" id="useS4" checked>
+        <span>Bu servisi kullan</span>
+      </div>
+      <div class="grid g3">
+        <div><label>Dispatch (S4)</label><input id="dispatch4"></div>
+        <div><label>cmd (S4)</label><input id="cmd4"></div>
+        <div><label>Kayıt Dizisi Path (S4) (opsiyonel)</label><input id="arrayPath4" placeholder="örn: data.detaylar"></div>
+      </div>
+      <div class="grid g2" style="margin-top:6px">
+        <div>
+          <label>JP Şablonu (S4)</label>
+          <textarea id="tpl4"
+placeholder='{"vkn":"[ID]","vdKodu":"[S2:vdKodu]","iadeDosyaNo":"[S3:iadeDosyaNo]","dilekceTipi":"[S3:dilekceTipi]"}'></textarea>
+          <small>[ID], [S1:alan], [S2:alan], [S3:alan] kullanılabilir.</small>
+        </div>
+        <div style="padding-top:18px">
+          <label class="checkbox-row">
+            <input type="checkbox" id="expand4" checked>
+            Çoklu detay kayıtlarını satıra çoğalt
+          </label>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+
+  <!-- ALAN SEÇİMİ -->
+  <div class="card">
+    <fieldset>
+      <legend>Excel Alan Seçimi (JOIN için)</legend>
+      <small>Ön izleme sonrası her servisten istediğin alanları seç; alttan sırasını, başlığını ve tipini belirle.</small>
+      <div class="grid g4" style="margin-top:8px">
+        <div>
+          <b>Servis 1 Alanları</b>
+          <div id="fields1" style="margin-top:4px;color:var(--mut)">— Ön izleme bekleniyor —</div>
+        </div>
+        <div>
+          <b>Servis 2 Alanları</b>
+          <div id="fields2" style="margin-top:4px;color:var(--mut)">— Ön izleme bekleniyor —</div>
+        </div>
+        <div>
+          <b>Servis 3 Alanları</b>
+          <div id="fields3" style="margin-top:4px;color:var(--mut)">— Ön izleme bekleniyor —</div>
+        </div>
+        <div>
+          <b>Servis 4 Alanları</b>
+          <div id="fields4" style="margin-top:4px;color:var(--mut)">— Ön izleme bekleniyor —</div>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+
+  <!-- KOLON SIRASI & BAŞLIK & TİP -->
+  <div class="card">
+    <fieldset>
+      <legend>Çıktı Kolon Sırası, Başlık ve Hücre Tipi</legend>
+      <small>Seçili alanları aşağıya aktar → burada sıralama, kolon başlığı ve hücre tipini (Metin/Sayı/Tarih) ayarla. Şablon ve çalışma kaydında saklanır.</small>
+      <div class="row" style="margin:6px 0">
+        <button id="btnColsSync" class="secondary">Seçili Alanları Aşağıya Aktar / Güncelle</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Servis</th>
+            <th>Alan Path</th>
+            <th>Başlık (Alias)</th>
+            <th>Hücre Tipi</th>
+            <th>Detay</th>
+            <th>Sıra</th>
+          </tr>
+        </thead>
+        <tbody id="colOrderBody">
+          <tr>
+            <td colspan="7" style="color:#9aa6bf">Henüz kolon seçilmedi. Önce yukarıdan alan seç, sonra "Seçili Alanları Aşağıya Aktar" de.</td>
+          </tr>
+        </tbody>
+      </table>
+    </fieldset>
+  </div>
+
+  <!-- TABLO -->
+  <div class="card">
+    <table>
+      <thead id="thead">
+        <tr><th>Kimlik</th><th>Durum</th></tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="2" style="color:#9aa6bf">Henüz veri yok</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const SERVICE_COUNT = 4;
+const $ = s => document.querySelector(s);
+
+/* Yardımcılar */
+function parseToken(s){
+  if(!s) return '';
+  const m = /(?:^|[?&])token=([^&]+)/.exec(s);
+  return m ? decodeURIComponent(m[1]) : s.trim();
+}
+function get(obj, path){
+  if(!path) return obj;
+  const re=/(\w+)|\[(\d+)\]/g; let cur=obj,m;
+  while((m=re.exec(path))){
+    const k = (m[1]!==undefined)?m[1]:Number(m[2]);
+    if(cur==null) return undefined;
+    cur = cur[k];
+  }
+  return cur;
+}
+function ensureArray(x){
+  return Array.isArray(x) ? x : (x==null ? [] : [x]);
+}
+
+/* S4 tekrarlı detaylar için yardımcılar */
+function findS4ArrayBase() {
+  const paths = [];
+  if (columnsConfig && columnsConfig.length) {
+    columnsConfig
+      .filter(c => c.svc === 4)
+      .forEach(c => paths.push(c.field));
+  } else {
+    (selected[4] || []).forEach(f => paths.push(f));
+  }
+  for (const p of paths) {
+    // örn: "borcMahsupDetay[0].vade"  veya  "borcMahsupBilgileri[0].borcMahsupDetay[0].tutar"
+    const m = /^(.*)\[(\d+)\]\.[^.]+$/.exec(p);
+    if (m) {
+      // m[1] = dizinin path'i ("borcMahsupDetay"  veya  "borcMahsupBilgileri[0].borcMahsupDetay")
+      return m[1];
+    }
+  }
+  return null;
+}
+
+// recs içinden alan okuma (S4 için index'li okuma)
+function getFromRecs(recs, svc, field, detailIndex) {
+  if (svc === 4 && detailIndex != null) {
+    // örn field: "borcMahsupDetay[0].tutar" veya "borcMahsupBilgileri[0].borcMahsupDetay[0].tutar"
+    const m = /^(.*)\[(\d+)\]\.(.+)$/.exec(field);
+    if (m) {
+      const arrPath = m[1]; // "borcMahsupDetay"  veya "borcMahsupBilgileri[0].borcMahsupDetay"
+      const rest    = m[3]; // "tutar" / "vade" vb.
+      const arr = get(recs[4] || {}, arrPath);
+      if (Array.isArray(arr) && arr[detailIndex]) {
+        return get(arr[detailIndex], rest);
+      }
+    }
+  }
+  return get(recs[svc] || {}, field);
+}
+
+function collectKeys(obj,prefix='',depth=2,out=new Set()){
+  if(obj==null || typeof obj!=='object') return out;
+  if(Array.isArray(obj)){
+    if(obj.length) collectKeys(obj[0], prefix+'[0]', depth, out);
+    return out;
+  }
+  for(const k of Object.keys(obj)){
+    const val = obj[k];
+    const path = prefix ? (prefix+'.'+k) : k;
+    if(val!=null && typeof val==='object' && depth>0){
+      collectKeys(val,path,depth-1,out);
+    }else{
+      out.add(path);
+    }
+  }
+  return out;
+}
+function csvRow(a){
+  return a.map(v=>{
+    let s = String(v==null?'':v);
+    return /[",\n]/.test(s)?('"'+s.replace(/"/g,'""')+'"'):s;
+  }).join(',');
+}
+function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+/* Retry'li HTTP */
+async function postWithRetry(dispatch, tokenInput, cmd, jpObj, retryCount=3){
+  const token = parseToken(tokenInput);
+  let lastError = null;
+  for(let attempt=1; attempt<=retryCount; attempt++){
+    try{
+      const body = new URLSearchParams();
+      body.set('cmd',cmd);
+      body.set('callid', String(Date.now())+Math.floor(Math.random()*1000));
+      body.set('token',token);
+      body.set('jp',JSON.stringify(jpObj));
+      const res = await fetch(dispatch,{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
+          'Accept':'application/json, text/javascript, */*; q=0.01'
+        },
+        credentials:'include',
+        body
+      });
+      const txt = await res.text();
+      try{
+        const json = JSON.parse(txt);
+        return {ok:true,json};
+      }catch(e){
+        lastError = 'JSON parse hatası';
+      }
+    }catch(e){
+      lastError = e.message || 'Failed to fetch';
+    }
+    await wait(1000);
+  }
+  return {ok:false,error:lastError||'Failed to fetch'};
+}
+
+/* Global state */
+let ids=[];
+let rowsOut=[];
+let fieldLists = Array(SERVICE_COUNT+1).fill(null).map(()=>[]);
+let selected   = Array(SERVICE_COUNT+1).fill(null).map(()=>[]);
+let columnsConfig = []; // {svc, field, alias, type, detailMode}
+let waitMsGlobal = 1200;
+let autoThrottleEnabled = true;
+let isRunning=false;
+let stopRequested=false;
+let lastIndex=0;
+
+/* Progress bar */
+function updateBar(cur,total){
+  const el = $('#progressInner');
+  if(!total || total<=0){ el.style.width='0%'; $('#barText').textContent=''; return; }
+  const pct = Math.round(cur*100/total);
+  el.style.width = pct+'%';
+  $('#barText').textContent = pct+'%';
+}
+
+/* JP şablonu -> nesne */
+function buildJp(tplRaw, id, recs){
+  const t = (tplRaw||'').trim();
+  if(!t){
+    return {vkn:String(id)};
+  }
+  let s = t.replace(/\[ID]/g,String(id));
+  s = s.replace(/\[S(\d+):([^\]]+)]/g,(m,svc,path)=>{
+    const idx = Number(svc);
+    const obj = recs[idx] || {};
+    const v = get(obj, path.trim());
+    if(v==null) return '';
+    return String(v);
+  });
+  try{
+    return JSON.parse(s);
+  }catch(e){
+    throw new Error('JP JSON hatası: '+e.message);
+  }
+}
+
+/* Servis çağır */
+async function fetchService(id, token, sidx, recs){
+  const dispatch = $('#dispatch'+sidx).value.trim();
+  const cmd      = $('#cmd'+sidx).value.trim();
+  const arrPath  = $('#arrayPath'+sidx).value.trim();
+  const tpl      = $('#tpl'+sidx).value;
+
+  if(!dispatch || !cmd){
+    return {error:true,msg:'Dispatch/cmd yok',rec:{},arr:[],full:null};
+  }
+  const jp = buildJp(tpl, id, recs);
+  const r  = await postWithRetry(dispatch, token, cmd, jp, 3);
+  if(!r.ok){
+    return {error:true,msg:r.error||'Servis hatası',rec:{},arr:[],full:null};
+  }
+  const json = r.json;
+  const root = (json && json.data!==undefined) ? json.data : json;
+  const arr  = arrPath ? ensureArray(get(json, arrPath)) : ensureArray(root);
+  const rec  = arr.length ? arr[0] : (root || {});
+  return {error:false,msg:'',rec,arr,full:json};
+}
+
+/* Alan listesi render */
+function renderFields(idx){
+  const box = $('#fields'+idx);
+  const list = fieldLists[idx];
+  if(!list.length){
+    box.innerHTML='<span class="err">Alan bulunamadı</span>';
+    return;
+  }
+  const sel = selected[idx] || [];
+  box.innerHTML = list.map(f=>`
+    <label class="checkbox-row">
+      <input type="checkbox" class="fld" data-svc="${idx}" value="${f}" ${sel.includes(f)?'checked':''}>
+      <span>${f}</span>
+    </label>
+  `).join('');
+}
+
+/* Kolon sırası paneli */
+function rebuildColumnsFromDOM(){
+  const body = $('#colOrderBody');
+  const rows = Array.from(body.querySelectorAll('tr[data-svc]'));
+  columnsConfig = rows.map(tr=>{
+    const svc = Number(tr.getAttribute('data-svc'));
+    const field = tr.getAttribute('data-field');
+    const alias = tr.querySelector('.col-alias')?.value.trim() || '';
+    const type  = tr.querySelector('.col-type')?.value || 'text';
+    const detailMode = tr.querySelector('.col-detail')?.value || 'auto';
+    return {svc, field, alias, type, detailMode};
+  });
+}
+function renderColumnsTable(){
+  const body = $('#colOrderBody');
+  if(!columnsConfig.length){
+    body.innerHTML='<tr><td colspan="7" style="color:#9aa6bf">Henüz kolon seçilmedi. Önce yukarıdan alan seç, sonra "Seçili Alanları Aşağıya Aktar" de.</td></tr>';
+  }else{
+    body.innerHTML = columnsConfig.map((c,idx)=>`
+      <tr data-svc="${c.svc}" data-field="${c.field}">
+        <td>${idx+1}</td>
+        <td>S${c.svc}</td>
+        <td>${c.field}</td>
+        <td><input class="col-alias" value="${c.alias || ('S'+c.svc+':'+c.field)}"></td>
+        <td>
+          <select class="col-type">
+            <option value="text"   ${!c.type || c.type==='text'?'selected':''}>Metin</option>
+            <option value="number" ${c.type==='number'?'selected':''}>Sayı</option>
+            <option value="date"   ${c.type==='date'?'selected':''}>Tarih</option>
+          </select>
+        </td>
+        <td>
+          <select class="col-detail">
+            <option value="auto"   ${(c.detailMode||'auto')==='auto'?'selected':''}>Oto</option>
+            <option value="first"  ${c.detailMode==='first'?'selected':''}>Sadece ilk satır</option>
+            <option value="repeat" ${c.detailMode==='repeat'?'selected':''}>Her satırda yaz</option>
+            <option value="join"   ${c.detailMode==='join'?'selected':''}>Hepsini aynı hücrede</option>
+          </select>
+        </td>
+        <td>
+          <button type="button" class="secondary btnUp">▲</button>
+          <button type="button" class="secondary btnDown">▼</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+}
+
+/* Tablo header */
+function writeHeader(){
+  const thead = $('#thead');
+  const idName = $('#idColName').value.trim() || 'Kimlik';
+
+  rebuildColumnsFromDOM();
+  if(columnsConfig && columnsConfig.length){
+    const headers = [idName].concat(
+      columnsConfig.map(c=>c.alias || ('S'+c.svc+':'+c.field))
+    );
+    thead.innerHTML = '<tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr>';
+  }else{
+    const cols=[idName];
+    for(let s=1;s<=SERVICE_COUNT;s++){
+      (selected[s]||[]).forEach(f=>cols.push('S'+s+':'+f));
+    }
+    thead.innerHTML = '<tr>'+cols.map(h=>'<th>'+h+'</th>').join('')+'</tr>';
+  }
+}
+
+/* Tablo body */
+function paintRows(){
+  const tb = $('#tbody');
+  if(!rowsOut.length){
+    tb.innerHTML='<tr><td colspan="2" style="color:#9aa6bf">Henüz veri yok</td></tr>';
+    return;
+  }
+  tb.innerHTML = rowsOut.map(r=>
+    '<tr>'+r.map((v,i)=>{
+      const txt = (v==null?'':String(v))
+                  .replace(/&/g,'&amp;').replace(/</g,'&lt;');
+      const cls = (i===1 && txt.startsWith('❌'))?'bad mono':'mono';
+      return '<td class="'+cls+'">'+txt+'</td>';
+    }).join('')+'</tr>'
+  ).join('');
+}
+
+/* Detay modlarını satır bloğuna uygula */
+function applyDetailModes(blockRows){
+  if(!columnsConfig || !columnsConfig.length) return;
+  if(!blockRows || blockRows.length <= 1) return;
+
+  const colCount = columnsConfig.length;
+
+  for(let colIdx=0; colIdx<colCount; colIdx++){
+    const cfg = columnsConfig[colIdx];
+    const mode = cfg.detailMode || 'auto';
+    const ci = 1 + colIdx; // 0 = Kimlik, sonrası kolonlar
+
+    if(mode === 'first'){
+      // İlk satır kalsın, diğerleri boş
+      for(let r=1; r<blockRows.length; r++){
+        if(blockRows[r]) blockRows[r][ci] = '';
+      }
+    }else if(mode === 'join'){
+      // Tüm değerleri birleştir, ilk satıra yaz, diğerleri boş
+      const vals = blockRows
+        .map(r => r && r[ci])
+        .filter(v => v!=null && v!=='');
+      if(!vals.length) continue;
+      const joined = vals.join(' | ');
+      blockRows[0][ci] = joined;
+      for(let r=1; r<blockRows.length; r++){
+        if(blockRows[r]) blockRows[r][ci] = '';
+      }
+    }
+    // auto / repeat => dokunma
+  }
+}
+
+/* Ortak: Config toplama / uygulama */
+function collectConfigFromUI(){
+  rebuildColumnsFromDOM();
+  const cfg = {
+    idColName:$('#idColName').value,
+    idPath:$('#idPath').value,
+    idType:$('#idType').value,
+    waitMs:$('#waitMs').value,
+    previewCount:$('#previewCount').value,
+    runCount:$('#runCount').value,
+    autoThrottle:$('#autoThrottle').checked,
+    filterPath3:$('#filterPath3').value,
+    filterValues3:$('#filterValues3').value,
+    expand2:$('#expand2').checked,
+    expand3:$('#expand3').checked,
+    expand4:$('#expand4').checked,
+    useS2:$('#useS2').checked,
+    useS3:$('#useS3').checked,
+    useS4:$('#useS4').checked,
+    services:{},
+    selectedFields:{},
+    columns:columnsConfig
+  };
+  for(let s=1;s<=SERVICE_COUNT;s++){
+    cfg.services[s]={
+      dispatch:$('#dispatch'+s).value,
+      cmd:$('#cmd'+s).value,
+      arrayPath:$('#arrayPath'+s).value,
+      tpl:$('#tpl'+s).value
+    };
+    cfg.selectedFields[s]=selected[s];
+  }
+  return cfg;
+}
+function applyConfigToUI(cfg){
+  $('#idColName').value=cfg.idColName||'';
+  $('#idPath').value=cfg.idPath||'';
+  $('#idType').value=cfg.idType||'vkn';
+  $('#waitMs').value=cfg.waitMs||'1200';
+  $('#previewCount').value=cfg.previewCount||'5';
+  $('#runCount').value=cfg.runCount||'';
+  $('#autoThrottle').checked=!!cfg.autoThrottle;
+  $('#filterPath3').value=cfg.filterPath3||'';
+  $('#filterValues3').value=cfg.filterValues3||'';
+  $('#expand2').checked=!!cfg.expand2;
+  $('#expand3').checked=!!cfg.expand3;
+  $('#expand4').checked=!!cfg.expand4;
+  $('#useS2').checked = (cfg.useS2!==false);
+  $('#useS3').checked = (cfg.useS3!==false);
+  $('#useS4').checked = (cfg.useS4!==false);
+
+  if(cfg.services){
+    for(let s=1;s<=SERVICE_COUNT;s++){
+      const sc=cfg.services[s]||{};
+      $('#dispatch'+s).value=sc.dispatch||'';
+      $('#cmd'+s).value=sc.cmd||'';
+      $('#arrayPath'+s).value=sc.arrayPath||'';
+      $('#tpl'+s).value=sc.tpl||'';
+    }
+  }
+  if(cfg.selectedFields){
+    for(let s=1;s<=SERVICE_COUNT;s++){
+      selected[s]=cfg.selectedFields[s]||[];
+      if(fieldLists[s] && fieldLists[s].length){
+        renderFields(s);
+      }
+    }
+  }
+  columnsConfig = cfg.columns || [];
+  renderColumnsTable();
+}
+
+/* ŞABLON KAYDET / YÜKLE / DIŞA-AKTAR / İÇE-AKTAR */
+const TPL_KEY='gib4sorgu_tpls_v4';
+function loadTplMap(){
+  try{
+    const s = localStorage.getItem(TPL_KEY);
+    return s ? JSON.parse(s) : {};
+  }catch(e){return {};}
+}
+function saveTplMap(m){
+  localStorage.setItem(TPL_KEY, JSON.stringify(m));
+}
+function refreshTplSel(){
+  const sel=$('#tplSelect'); const map=loadTplMap();
+  const names=Object.keys(map).sort();
+  sel.innerHTML='<option value="">(şablon yok)</option>'+
+    names.map(n=>`<option value="${n}">${n}</option>`).join('');
+}
+refreshTplSel();
+
+$('#btnTplSave').onclick=()=>{
+  const name=$('#tplName').value.trim();
+  if(!name){alert('Şablon adı yaz');return;}
+  for(let s=1;s<=SERVICE_COUNT;s++){
+    selected[s] = [...document.querySelectorAll('.fld[data-svc="'+s+'"]:checked')]
+      .map(c=>c.value);
+  }
+  const cfg = collectConfigFromUI();
+  const map = loadTplMap();
+  map[name]=cfg; saveTplMap(map); refreshTplSel();
+  $('#tplSelect').value=name;
+  alert('Şablon kaydedildi (token & kimlik listesi hariç)');
+};
+
+$('#btnTplLoad').onclick=()=>{
+  const name=$('#tplSelect').value;
+  if(!name){alert('Şablon seç');return;}
+  const map=loadTplMap(); const cfg=map[name];
+  if(!cfg){alert('Şablon bulunamadı');return;}
+  applyConfigToUI(cfg);
+  alert('Şablon yüklendi (token & kimlik listesi hariç)');
+};
+
+$('#btnTplDelete').onclick=()=>{
+  const name=$('#tplSelect').value;
+  if(!name){alert('Silmek için şablon seç');return;}
+  const map=loadTplMap();
+  if(!map[name]){alert('Bulunamadı');return;}
+  if(!confirm(`"${name}" şablonunu silmek istiyor musun?`)) return;
+  delete map[name]; saveTplMap(map); refreshTplSel();
+  $('#tplSelect').value='';
+  alert('Silindi');
+};
+
+/* Şablon dışa aktar (seçili şablon) */
+$('#btnTplExport').onclick=()=>{
+  const name=$('#tplSelect').value;
+  if(!name){alert('Önce dışa aktarmak için bir şablon seç');return;}
+  const map=loadTplMap(); const cfg=map[name];
+  if(!cfg){alert('Şablon bulunamadı');return;}
+  const blob = new Blob([JSON.stringify({name,cfg},null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='gib_sablon_'+name+'.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},0);
+};
+
+/* Şablon içe aktar */
+$('#btnTplImport').onclick=()=>$('#tplFile').click();
+
+$('#tplFile').addEventListener('change',e=>{
+  const file=e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const txt=reader.result;
+      const obj=JSON.parse(txt);
+      let name, cfg;
+      if(obj && obj.name && obj.cfg){
+        name=obj.name; cfg=obj.cfg;
+      }else{
+        cfg=obj;
+      }
+      if(!name){
+        name = prompt('İçe aktarılan şablona verilecek ad:', file.name.replace(/\.[^.]+$/,'') );
+        if(!name){alert('İçe aktarma iptal edildi');return;}
+      }
+      const map=loadTplMap();
+      map[name]=cfg; saveTplMap(map); refreshTplSel();
+      $('#tplSelect').value=name;
+      alert('Şablon içe aktarıldı');
+    }catch(err){
+      alert('JSON okunamadı: '+err.message);
+    }finally{
+      e.target.value='';
+    }
+  };
+  reader.readAsText(file,'utf-8');
+});
+
+/* ÇALIŞMA KAYDI (duraklat/sonra devam) */
+const SESS_KEY='gib4sorgu_session_v1';
+
+function saveSession(silent=false){
+  for(let s=1;s<=SERVICE_COUNT;s++){
+    selected[s] = [...document.querySelectorAll('.fld[data-svc="'+s+'"]:checked')]
+      .map(c=>c.value);
+  }
+  const cfg = collectConfigFromUI();
+  const obj = {
+    cfg,
+    ids,
+    lastIndex,
+    rowsOut
+  };
+  try{
+    localStorage.setItem(SESS_KEY, JSON.stringify(obj));
+    if(!silent) alert('Çalışma kaydedildi.');
+  }catch(e){
+    if(!silent) alert('Çalışma kaydedilemedi: '+e.message);
+  }
+}
+
+function loadSession(){
+  const s = localStorage.getItem(SESS_KEY);
+  if(!s){alert('Kayıtlı çalışma bulunamadı.');return;}
+  try{
+    const obj = JSON.parse(s);
+    applyConfigToUI(obj.cfg||{});
+    ids = obj.ids || [];
+    rowsOut = obj.rowsOut || [];
+    lastIndex = obj.lastIndex || 0;
+    $('#ids').value = ids.join('\n');
+    paintRows();
+    updateBar(lastIndex, ids.length || 0);
+    $('#stat').textContent = `Çalışma yüklendi • ${lastIndex}/${ids.length} • "Kaldığı yerden devam" ile sürdürebilirsin.`;
+    $('#btnRun').textContent='Kaldığı yerden devam';
+  }catch(e){
+    alert('Çalışma kaydı okunamadı: '+e.message);
+  }
+}
+
+$('#btnSessSave').onclick=()=>saveSession(false);
+$('#btnSessLoad').onclick=()=>loadSession();
+
+/* Kolon seçimlerini senkronla */
+$('#btnColsSync').onclick=()=>{
+  rebuildColumnsFromDOM();
+  const oldMap = new Map();
+  columnsConfig.forEach((c,i)=>{
+    oldMap.set(c.svc+'|'+c.field, {alias:c.alias, type:c.type||'text', detailMode:c.detailMode||'auto', order:i});
+  });
+
+  const newList=[];
+  for(let s=1;s<=SERVICE_COUNT;s++){
+    (selected[s]||[]).forEach(f=>{
+      const key=s+'|'+f;
+      const prev=oldMap.get(key);
+      newList.push({
+        svc:s,
+        field:f,
+        alias:prev ? prev.alias : ('S'+s+':'+f),
+        type:prev ? prev.type : 'text',
+        detailMode:prev ? (prev.detailMode || 'auto') : 'auto',
+        order:prev ? prev.order : 9999
+      });
+    });
+  }
+  newList.sort((a,b)=> (a.order-b.order) || (a.svc-b.svc) || a.field.localeCompare(b.field));
+  columnsConfig = newList.map(({svc,field,alias,type,detailMode})=>({svc,field,alias,type,detailMode}));
+  renderColumnsTable();
+};
+
+/* Kolon sırası up/down */
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('btnUp') || e.target.classList.contains('btnDown')){
+    rebuildColumnsFromDOM();
+    const tr = e.target.closest('tr');
+    const svc = Number(tr.getAttribute('data-svc'));
+    const field = tr.getAttribute('data-field');
+    const idx = columnsConfig.findIndex(c=>c.svc===svc && c.field===field);
+    if(idx<0) return;
+    if(e.target.classList.contains('btnUp') && idx>0){
+      const tmp = columnsConfig[idx-1];
+      columnsConfig[idx-1]=columnsConfig[idx];
+      columnsConfig[idx]=tmp;
+    }
+    if(e.target.classList.contains('btnDown') && idx<columnsConfig.length-1){
+      const tmp = columnsConfig[idx+1];
+      columnsConfig[idx+1]=columnsConfig[idx];
+      columnsConfig[idx]=tmp;
+    }
+    renderColumnsTable();
+  }
+});
+
+/* ÖN İZLEME */
+$('#btnPreview').onclick=async ()=>{
+  rowsOut=[]; paintRows();
+  $('#btnCSV').disabled=true;
+  $('#btnRun').textContent='2) Tüm Listeyi Çalıştır';
+
+  const token=$('#token').value.trim();
+  if(!token){alert('Token yok');return;}
+
+  ids = $('#ids').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  if(!ids.length){alert('Kimlik listesi boş');return;}
+
+  const cin = ($('#cookie').value||'').trim();
+  if(cin && !/JSESSIONID=/.test(document.cookie)){
+    try{ document.cookie=cin; }catch(e){}
+  }
+
+  waitMsGlobal = parseInt($('#waitMs').value.trim(),10);
+  if(isNaN(waitMsGlobal)||waitMsGlobal<0) waitMsGlobal=1200;
+  $('#waitMs').value = String(waitMsGlobal);
+  autoThrottleEnabled = $('#autoThrottle').checked;
+
+  let pc = parseInt($('#previewCount').value.trim(),10);
+  if(isNaN(pc) || pc<1) pc=1;
+  const maxPreview = Math.min(pc, ids.length);
+
+  fieldLists = Array(SERVICE_COUNT+1).fill(null).map(()=>[]);
+  for(let s=1;s<=SERVICE_COUNT;s++){
+    $('#fields'+s).innerHTML='— Ön izleme bekleniyor —';
+  }
+
+  const use2=$('#useS2').checked;
+  const use3=$('#useS3').checked;
+  const use4=$('#useS4').checked;
+
+  updateBar(0,maxPreview);
+  for(let i=0;i<maxPreview;i++){
+    const id = ids[i];
+    $('#stat').textContent = `Ön izleme ${i+1}/${maxPreview} (ID: ${id})`;
+
+    const recs={};
+    // S1
+    try{
+      const r1 = await fetchService(id,token,1,recs);
+      if(i===0){
+        if(r1.error){
+          $('#fields1').innerHTML='<span class="err">S1 hata: '+r1.msg+'</span>';
+        }else{
+          const arr1 = r1.arr.length?r1.arr:[r1.rec];
+          const keys1 = collectKeys(arr1[0],'',2);
+          fieldLists[1]=[...keys1]; renderFields(1);
+        }
+      }
+      recs[1]=r1.rec;
+    }catch(e){
+      if(i===0){
+        $('#fields1').innerHTML='<span class="err">S1 JS hata: '+e.message+'</span>';
+      }
+    }
+
+    // S2
+    if(use2){
+      try{
+        const r2 = await fetchService(id,token,2,recs);
+        if(i===0){
+          if(r2.error){
+            $('#fields2').innerHTML='<span class="err">S2 hata: '+r2.msg+'</span>';
+          }else{
+            const arr2 = r2.arr.length?r2.arr:[r2.rec];
+            const keys2 = collectKeys(arr2[0],'',2);
+            fieldLists[2]=[...keys2]; renderFields(2);
+          }
+        }
+        recs[2]=r2.rec;
+      }catch(e){
+        if(i===0){
+          $('#fields2').innerHTML='<span class="err">S2 JS hata: '+e.message+'</span>';
+        }
+      }
+    }else if(i===0){
+      $('#fields2').innerHTML='<span style="color:#777">Devre dışı</span>';
+    }
+
+    // S3
+    if(use3){
+      try{
+        const r3 = await fetchService(id,token,3,recs);
+        if(i===0){
+          if(r3.error){
+            $('#fields3').innerHTML='<span class="err">S3 hata: '+r3.msg+'</span>';
+          }else{
+            const arr3 = r3.arr.length?r3.arr:[r3.rec];
+            const keys3 = collectKeys(arr3[0],'',2);
+            fieldLists[3]=[...keys3]; renderFields(3);
+          }
+        }
+        recs[3]=r3.rec;
+      }catch(e){
+        if(i===0){
+          $('#fields3').innerHTML='<span class="err">S3 JS hata: '+e.message+'</span>';
+        }
+      }
+    }else if(i===0){
+      $('#fields3').innerHTML='<span style="color:#777">Devre dışı</span>';
+    }
+
+    // S4
+    if(use4){
+      try{
+        const r4 = await fetchService(id,token,4,recs);
+        if(i===0){
+          if(r4.error){
+            $('#fields4').innerHTML='<span class="err">S4 hata: '+r4.msg+'</span>';
+          }else{
+            const arr4 = r4.arr.length?r4.arr:[r4.rec];
+            const keys4 = collectKeys(arr4[0],'',2);
+            fieldLists[4]=[...keys4]; renderFields(4);
+          }
+        }
+      }catch(e){
+        if(i===0){
+          $('#fields4').innerHTML='<span class="err">S4 JS hata: '+e.message+'</span>';
+        }
+      }
+    }else if(i===0){
+      $('#fields4').innerHTML='<span style="color:#777">Devre dışı</span>';
+    }
+
+    updateBar(i+1,maxPreview);
+    await wait(waitMsGlobal);
+  }
+  $('#stat').textContent = `Ön izleme tamam (${maxPreview} ID). Alanları seç, "Seçili Alanları Aşağıya Aktar" de, sonra "Tüm Listeyi Çalıştır".`;
+};
+
+/* DURDUR / DEVAM'LI ÇALIŞTIR */
+$('#btnRun').onclick=async ()=>{
+  const token=$('#token').value.trim();
+  if(!token){alert('Token yok');return;}
+
+  ids = $('#ids').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  if(!ids.length){alert('Kimlik listesi boş');return;}
+
+  if(isRunning){
+    stopRequested=true;
+    isRunning=false;
+    $('#stat').textContent += ' • Durduruluyor...';
+    return;
+  }
+
+  for(let s=1;s<=SERVICE_COUNT;s++){
+    selected[s] = [...document.querySelectorAll('.fld[data-svc="'+s+'"]:checked')]
+      .map(c=>c.value);
+  }
+  const anySelected = selected.some((arr,idx)=>idx>0 && arr && arr.length);
+  if(!anySelected){
+    alert('Excel için en az bir alan seçmelisin.');
+    return;
+  }
+
+  rebuildColumnsFromDOM();
+
+  waitMsGlobal = parseInt($('#waitMs').value.trim(),10);
+  if(isNaN(waitMsGlobal)||waitMsGlobal<0) waitMsGlobal=1200;
+  $('#waitMs').value = String(waitMsGlobal);
+  autoThrottleEnabled = $('#autoThrottle').checked;
+
+  const expand2 = $('#expand2').checked;
+  const expand3 = $('#expand3').checked;
+  const expand4 = $('#expand4').checked;
+
+  const use2=$('#useS2').checked;
+  const use3=$('#useS3').checked;
+  const use4=$('#useS4').checked;
+
+  const filterPath3 = $('#filterPath3').value.trim();
+  const filterValues3 = $('#filterValues3').value.split(',')
+                         .map(s=>s.trim()).filter(Boolean);
+  const useFilter3 = !!(filterPath3 && filterValues3.length && use3);
+
+  let rc = parseInt($('#runCount').value.trim(),10);
+  if(isNaN(rc) || rc<=0) rc = ids.length;
+  const total = Math.min(rc, ids.length);
+
+  const startIndex = (lastIndex>0 && lastIndex<total) ? lastIndex : 0;
+  if(startIndex===0){
+    rowsOut=[]; paintRows();
+  }
+  writeHeader();
+  $('#btnCSV').disabled=true;
+
+  isRunning=true;
+  stopRequested=false;
+  $('#btnRun').textContent='Durdur';
+  let errorStreak=0;
+
+  const bumpThrottle=()=>{
+    if(!autoThrottleEnabled) return;
+    if(errorStreak>=3){
+      waitMsGlobal=Math.min(waitMsGlobal+500,5000);
+      $('#waitMs').value=String(waitMsGlobal);
+      errorStreak=0;
+    }
+  };
+
+  for(let i=startIndex;i<total;i++){
+    if(stopRequested){
+      lastIndex=i;
+      $('#stat').textContent=`Durduruldu • ${i}/${total}`;
+      saveSession(true); // otomatik çalışma kaydı
+      break;
+    }
+    const id = ids[i];
+    $('#stat').textContent=`${i+1}/${total} işleniyor (ID: ${id})`;
+    updateBar(i,total);
+
+    try{
+      // S1
+      const r1 = await fetchService(id,token,1,{});
+      if(r1.error){
+        rowsOut.push([id,'❌ S1 hata: '+r1.msg]);
+        paintRows(); errorStreak++; bumpThrottle(); await wait(waitMsGlobal); continue;
+      }
+      const rec1=r1.rec||{};
+
+      // S2
+      let arr2=[{}], rec2={};
+      if(use2){
+        const r2 = await fetchService(id,token,2,{1:rec1});
+        if(r2.error){
+          rowsOut.push([id,'❌ S2 hata: '+r2.msg]);
+          paintRows(); errorStreak++; bumpThrottle(); await wait(waitMsGlobal); continue;
+        }
+        rec2=r2.rec||{};
+        arr2 = (expand2 && r2.arr.length)?r2.arr:(r2.arr.length?[r2.rec]:[{}]);
+      }
+
+      for(const rec2Item of arr2){
+        const rec2Use = use2 ? rec2Item : {};
+        const baseS2={1:rec1,2:rec2Use};
+
+        // S3
+        let arr3=[{}], rec3={};
+        if(use3){
+          const r3 = await fetchService(id,token,3,baseS2);
+          if(r3.error){
+            rowsOut.push([id,'❌ S3 hata: '+r3.msg]);
+            paintRows(); errorStreak++; bumpThrottle(); await wait(waitMsGlobal); continue;
+          }
+          rec3=r3.rec||{};
+          arr3 = (expand3 && r3.arr.length)?r3.arr:(r3.arr.length?[r3.rec]:[{}]);
+          if(useFilter3){
+            arr3 = arr3.filter(rec3i=>{
+              const v = get(rec3i,filterPath3);
+              return filterValues3.includes(String(v));
+            });
+            if(!arr3.length) continue;
+          }
+        }
+
+        for(const rec3Item of arr3){
+          const rec3Use = use3 ? rec3Item : {};
+          const baseS3={1:rec1,2:rec2Use,3:rec3Use};
+
+          // S4
+          let arr4=[{}], rec4={};
+          if(use4){
+            const r4 = await fetchService(id,token,4,baseS3);
+            if(r4.error){
+              rowsOut.push([id,'❌ S4 hata: '+r4.msg]);
+              paintRows(); errorStreak++; bumpThrottle(); await wait(waitMsGlobal); continue;
+            }
+            rec4=r4.rec||{};
+            arr4 = (expand4 && r4.arr.length)?r4.arr:(r4.arr.length?[r4.rec]:[{}]);
+          }
+
+          // S4 içindeki tekrar eden detaylar için base path'i bul
+          const s4ArrayBase = findS4ArrayBase();
+
+          for(const rec4Item of arr4){
+            const rec4Use = use4 ? rec4Item : {};
+            const recs={1:rec1,2:rec2Use,3:rec3Use,4:rec4Use};
+
+            // S4'te iç içe detay dizisi var mı?
+            let detailArray = null;
+            if (use4 && s4ArrayBase) {
+              const arr = get(rec4Use, s4ArrayBase);
+              if (Array.isArray(arr) && arr.length > 0) {
+                detailArray = arr;
+              }
+            }
+
+            // ▸ Detay dizisi yoksa: mevcut davranış (S4 her satır, alanlar tek kayıt gibi)
+            if (!detailArray) {
+              let keyVal=id;
+              const idPath = $('#idPath').value.trim();
+              if(idPath){
+                const m = /^S(\d+)\.(.+)$/.exec(idPath);
+                if(m){
+                  const svc = Number(m[1]);
+                  keyVal = get(recs[svc]||{},m[2]) || keyVal;
+                }else{
+                  for(let s=1;s<=SERVICE_COUNT;s++){
+                    const v=get(recs[s]||{},idPath);
+                    if(v){ keyVal=v; break; }
+                  }
+                }
+              }
+
+              const row=[keyVal];
+              if(columnsConfig && columnsConfig.length){
+                columnsConfig.forEach(c=>{
+                  row.push(getFromRecs(recs, c.svc, c.field, null));
+                });
+              }else{
+                for(let s=1;s<=SERVICE_COUNT;s++){
+                  (selected[s]||[]).forEach(f=>{
+                    row.push(getFromRecs(recs, s, f, null));
+                  });
+                }
+              }
+              rowsOut.push(row);
+              paintRows();
+              continue;
+            }
+
+            // ▸ Detay dizisi varsa: her detay için satır bloğu üret
+            const blockRows = [];
+
+            for (let di = 0; di < detailArray.length; di++) {
+              let keyVal=id;
+              const idPath = $('#idPath').value.trim();
+              if(idPath){
+                const m = /^S(\d+)\.(.+)$/.exec(idPath);
+                if(m){
+                  const svc = Number(m[1]);
+                  keyVal = get(recs[svc]||{},m[2]) || keyVal;
+                }else{
+                  for(let s=1;s<=SERVICE_COUNT;s++){
+                    const v=get(recs[s]||{},idPath);
+                    if(v){ keyVal=v; break; }
+                  }
+                }
+              }
+
+              const row=[keyVal];
+              if(columnsConfig && columnsConfig.length){
+                columnsConfig.forEach(c=>{
+                  row.push(getFromRecs(recs, c.svc, c.field, di));
+                });
+              }else{
+                for(let s=1;s<=SERVICE_COUNT;s++){
+                  (selected[s]||[]).forEach(f=>{
+                    row.push(getFromRecs(recs, s, f, di));
+                  });
+                }
+              }
+              blockRows.push(row);
+            }
+
+            // Seçilen "Detay" modlarına göre bloğu düzenle
+            applyDetailModes(blockRows);
+
+            // Çıktıya ekle
+            blockRows.forEach(r=>rowsOut.push(r));
+            paintRows();
+          }
+        }
+      }
+      errorStreak=0;
+    }catch(e){
+      rowsOut.push([id,'❌ JS hata: '+e.message]);
+      paintRows(); errorStreak++; bumpThrottle();
+    }
+    await wait(waitMsGlobal);
+  }
+
+  isRunning=false;
+  if(!stopRequested){
+    lastIndex=0;
+    updateBar(total,total);
+    $('#stat').textContent='Bitti';
+    $('#btnCSV').disabled=false;
+    $('#btnRun').textContent='2) Tüm Listeyi Çalıştır';
+  }else{
+    $('#btnRun').textContent='Kaldığı yerden devam';
+  }
+};
+
+/* HATALILARI LİSTEYE AKTAR */
+$('#btnRetryList').onclick=()=>{
+  if(!rowsOut || !rowsOut.length){
+    alert('Henüz sonuç tablosu yok.');
+    return;
+  }
+  const errorIds=[];
+  for(const row of rowsOut){
+    if(!row || !row.length) continue;
+    const hasErr = row.some(v=>typeof v==='string' && v.includes('❌'));
+    if(hasErr){
+      const id=row[0];
+      if(id && !errorIds.includes(id)) errorIds.push(id);
+    }
+  }
+  if(!errorIds.length){
+    alert('❌ içeren satır bulunamadı.');
+    return;
+  }
+  $('#ids').value = errorIds.join('\n');
+  alert(`Hatalı ${errorIds.length} kimlik listeye yazıldı.\nŞimdi "Tüm Listeyi Çalıştır" ile sadece bunları yeniden sorgulayabilirsin.`);
+};
+
+/* CSV İNDİR (sütun tipiyle beraber) */
+$('#btnCSV').onclick=()=>{
+  if(!rowsOut.length){alert('Veri yok');return;}
+  const th = [...document.querySelectorAll('#thead th')].map(th=>th.textContent);
+  const rows = [th];
+
+  rebuildColumnsFromDOM();
+
+  rowsOut.forEach(orig=>{
+    const row = orig.map(v=>v); // kopya
+
+    // Kimlik sütunu: text olsun (VKN/TCKN)
+    if(row[0]!=null && row[0]!==''){
+      const v0 = String(row[0]);
+      if(!v0.startsWith("'")) row[0] = "'" + v0;
+    }
+
+    if(columnsConfig && columnsConfig.length){
+      columnsConfig.forEach((c,idx)=>{
+        const colIndex = 1 + idx;
+        let v = row[colIndex];
+        if(v==null) return;
+        v = String(v);
+        if(c.type==='text'){
+          if(v!=='' && !v.startsWith("'")){
+            row[colIndex] = "'" + v;
+          }
+        }else{
+          row[colIndex]=v;
+        }
+      });
+    }
+
+    rows.push(row);
+  });
+
+  const blob = new Blob(['\ufeff'+rows.map(csvRow).join('\n')],{type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='gib_4servis_sonuclar.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},0);
+};
+</script>
+</body>
+</html>
